@@ -14,17 +14,13 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-top: 80px; /* space for fixed/absolute header */
-  padding-bottom: 140px; /* space for absolute footer */
+  padding-top: 80px;
+  padding-bottom: 0;
 }
 
-/* App-wide background image with bluish overlay
-   Usage: add "app-background" class to the root wrapper (e.g., <div class="ecosalud-root app-background">)
-   Replace the URL below with your desired image path under /assets/backgrounds/
-*/
 .app-background {
-  /* Default to no image to avoid build-time resolution errors. Override this var at runtime. */
-  --app-bg-image: none; /* e.g., set inline: style={{ '--app-bg-image': 'url(/assets/backgrounds/mi-fondo.jpg)' }} */
+  
+  --app-bg-image: none; 
   --app-bg-overlay: linear-gradient(
     180deg,
     rgba(30, 64, 153, 0.45) 0%,
@@ -177,7 +173,7 @@ html, body, #root {
   z-index: 10;
 }
 
-/* Liquid Glass effect wrapper */
+/* Liquid Glass */
 .liquid-glass {
   position: relative;
   overflow: hidden;
@@ -308,8 +304,7 @@ html, body, #root {
   padding: 40px 5%;
   background: #ffffff;
   color: #1E4099;
-  position: absolute;
-  bottom: 0;
+  position: static;
   width: 100%;
   box-sizing: border-box;
 }
@@ -336,6 +331,14 @@ html, body, #root {
   text-decoration: none;
 }
 
+
+@media (max-width: 768px) {
+  .footer-section a {
+    display: block;
+    margin: 6px 0;
+  }
+}
+
 .footer-logo {
   display: flex;
   align-items: center;
@@ -359,5 +362,18 @@ html, body, #root {
   justify-content: center;
   color: white;
   font-size: 10px;
+}
+
+
+@media (max-width: 768px) {
+  .footer {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 16px;
+    padding: 24px 16px;
+  }
+  .footer-logo { justify-content: center; }
+  .footer-section { margin-bottom: 8px; }
+  .footer-section a { display: block; margin: 6px 0; font-size: 14px; }
 }
 
