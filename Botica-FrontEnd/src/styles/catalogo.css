@@ -157,7 +157,7 @@
 .grid__item {
   aspect-ratio: 3/4;
   max-height: 380px;
-  border-radius: 16px;
+  border-radius: 3px;
   overflow: hidden;
   padding: 16px;
   background: #fff;
@@ -169,6 +169,7 @@
   margin: 0 auto;
   width: 100%;
   max-width: 320px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 .grid__item:hover {
@@ -233,3 +234,141 @@
 
 /* Elementos ocultos */
 .slider__hint { display: none; }
+
+
+
+
+
+
+
+/* Contenedor Principal del Catalogo */
+.catalogo-page-container {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem 5%;
+  max-width: 1600px;
+  margin: 0 auto;
+  align-items: flex-start;
+  min-height: 80vh;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+/* Barra lateral de filtros */
+.filters-sidebar {
+  width: 280px;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  margin: 0 2rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: 100px; /* Se queda fija al hacer scroll */
+  
+}
+
+.filter-group {
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 1rem;
+  padding: 1rem 0;
+}
+
+.filter-group:last-child {
+  border-bottom: none;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #1e4099;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+
+/* Estilos para el rango de precio */
+input[type="range"] {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+  
+}
+
+/* Estilos para los checkboxes */
+input[type="checkbox"] {
+  margin-right: 1px;
+  accent-color: #1976d2;
+  cursor: pointer;
+
+
+}
+input[type="checkbox"]:hover {
+  transform: scale(1.1);
+  transition: all 0.2s ease-in-out;
+}
+
+
+.products-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+/* Contenedor de las filtros de ordenamiento */
+.filter-pills-container {
+  display: flex;
+  gap: 1rem;
+  padding-left: 20px;
+  align-items: center;
+  justify-content: center;
+}
+/* Estilos para los botones de filtro */
+.filter-pill {
+  padding: 8px 16px;
+  background-color: #e9ecef;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+
+.filter-pill:active {
+  background-color: #007bff;
+  color: white;
+  font-weight: 600;
+}
+
+.filter-pill:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+
+
+/* Contenedor de productos */
+.products-grid {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2rem;
+}
+
+/* Media Query para la adaptabilidad */
+@media (max-width: 1024px) {
+  .products-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
