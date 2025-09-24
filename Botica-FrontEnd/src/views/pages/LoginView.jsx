@@ -1,7 +1,7 @@
 import React from 'react';
-import '../styles/ecosalud.css';
-import useLoginController from '../controllers/LoginController';
-import MainLayout from './layouts/MainLayout';
+import '../../styles/ecosalud.css';
+import useLoginController from '../../controllers/LoginController';
+import MainLayout from '../layouts/MainLayout';
 
 function LoginView() {
   const {
