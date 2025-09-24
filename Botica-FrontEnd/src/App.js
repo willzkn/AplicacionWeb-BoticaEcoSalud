@@ -1,18 +1,23 @@
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import LoginView from './views/LoginView';
+import { HelmetProvider } from 'react-helmet-async';
+import LoginView from './views/pages/LoginView';
 import Inicio from './views/pages/Inicio';
-import CatalogoView from './views/CatalogoView';
+import CatalogoView from './views/pages/CatalogoView';
+import ProductDetail from './views/pages/ProductDetail';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Inicio />} />
-        <Route path="/login" element={<LoginView />} />
+    <HelmetProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/login" element={<LoginView />} />
           <Route path="/catalogo" element={<CatalogoView />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="/producto/:id" element={<ProductDetail />} />
+        </Routes>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 
