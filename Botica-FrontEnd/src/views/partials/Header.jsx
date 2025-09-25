@@ -50,7 +50,7 @@ function Header({
       <nav className="nav-menu">
         <Link to="/" className="nav-link">Inicio</Link>
         <Link to="/catalogo" className="nav-link">Catálogo</Link>
-        <Link to="/promociones" className="nav-link">Promociones</Link>
+        <Link to="/carrito" className="nav-link">Carrito</Link>
         <Link to="/login" className="login-btn">Iniciar sesión</Link>
       </nav>
     </div>

@@ -8,7 +8,7 @@ function Footer() {
         <h4>Accesos directos</h4>
         <Link to="/login">Inicio</Link>
         <Link to="/catalogo">Catálogo</Link>
-        <Link to="/promociones">Promociones</Link>
+        <Link to="/carrito">Carrito</Link>
         <Link to="/login">Iniciar sesión</Link>
       </div>
       <div className="footer-section">
