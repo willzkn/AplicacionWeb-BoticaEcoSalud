@@ -12,12 +12,14 @@ Este proyecto busca optimizar la gestión interna de una empresa ficticia median
 
 ## 🛠️ Tecnologías y Herramientas Utilizadas
 
+
 - **Lenguajes:** Java, JavaScript
 - **IDE:** VSCode
 - **Documentación:** Markdown, GitHub
 - **Planificación:** Gantt en Excel
 - **Base de datos:** MySQL
 - **Gestión de versiones:** Git y GitHub
+
 
 ## 🗂️ Estructura Modular del Sistema
 
@@ -77,3 +79,5 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 📺 Si necesitas ver cómo se hace paso a paso, puedes visualizar el siguiente video tutorial:
 👉 Clonar un repositorio Git de GitHub 2024 - YouTube
 https://www.youtube.com/watch?v=rAnn6vtLm90
+
+
