@@ -5,6 +5,7 @@ import { initialProducts } from '../../models/CatalogoModel';
 import ProductCard from '../partials/ProductCard';
 import '../../styles/ProductDetail.css';
 import MainLayout from '../layouts/MainLayout';
+import { useCart } from '../../controllers/CartContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -12,6 +13,8 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [notFound, setNotFound] = useState(false);
+
+  const { addToCart } = useCart(); // Hook para agregar al carrito
 
   useEffect(() => {
     // Find the current product
@@ -32,10 +35,9 @@ const ProductDetail = () => {
   }, [id]);
 
   const handleAddToCart = (product, quantity) => {
-    // Aquí iría la lógica para agregar al carrito
-    console.log(`Agregando ${quantity} de ${product.name} al carrito`);
-    // Muestra una alerta temporal
-    alert(`Se agregaron ${quantity} ${product.name} al carrito`);
+    addToCart(product, quantity);
+    
+    alert(`Se agregaron ${quantity} ${product.name} al carrito`);
   };
 
   if (notFound) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import '../../styles/catalogo.css';
+import '../../styles/inicio.css';
 import Header from '../partials/Header';
 import Footer from '../partials/Footer';
 
