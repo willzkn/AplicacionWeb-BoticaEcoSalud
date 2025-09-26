@@ -126,6 +126,7 @@ https://www.youtube.com/watch?v=rAnn6vtLm90
 | Piero Ferrel   | Full Stack |Desarrollar tanto el frontend como el backend.|
 | William Moreno   |  Frontend |Diseñar y desarrollar la interfaz de usuario.|
 | Alexander Macalopu   | Full Stack |Crear herramientas administrativas para gestionar usuarios y contenido.|
+| Eloy Guillen   |  Frontend |Diseñar y desarrollar la interfaz de usuario.|
 
 ---
 
