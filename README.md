@@ -112,6 +112,7 @@ docs/diagrama de procesos a implementar.png
 
 ### Diagrama Lógico de la Base de Datos
 docs/diagrama logico.png
+
 ---
 
 ## 📋 Responsabilidades del equipo
