@@ -105,8 +105,16 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 https://www.youtube.com/watch?v=rAnn6vtLm90
 
 ---
+## 📊 Diagramas
 
-## 📋 Responsabilidades
+### Diagrama de Procesos (BPMN)
+
+
+### Diagrama Lógico de la Base de Datos
+
+---
+
+## 📋 Responsabilidades del equipo
 
 | Nombre |  Rol  | Funciones | 
 |:-----|:--------:|:--------:|
