@@ -3,15 +3,21 @@
 Aplicación Web Botica es un sistema académico desarrollado como parte del Proyecto Integrador de la carrera de Ingeniería de Sistemas, orientado a la gestión automatizada de procesos de inventario, compras, ventas y reportes.
 El objetivo principal es automatizar procesos de inventario, compras, ventas y reportes en la empresa EcoSalud, aplicando principios de programación estructurada y modelado de procesos BPMN.
 
+---
+
 ## 🎯 Objetivos del Proyecto
 
 - Desarrollar un sistema modular que automatice los procesos de inventario, compras, ventas y reportes.
 - Aplicar principios de programación estructurada y modelado de procesos BPMN.
 - Documentar el desarrollo técnico y académico con precisión y claridad.
 
+---
+
 ## 🧠 Descripción General
 
 Este proyecto busca optimizar la gestión interna de una empresa ficticia mediante la implementación de un sistema informático dividido en módulos funcionales. Cada módulo representa un proceso clave del negocio, modelado con BPMN y especificado en XML, siguiendo buenas prácticas de diseño y documentación.
+
+---
 
 ## 🛠️ Tecnologías y Herramientas Utilizadas
 
@@ -23,6 +29,7 @@ Este proyecto busca optimizar la gestión interna de una empresa ficticia median
 - **Base de datos:** MySQL
 - **Gestión de versiones:** Git y GitHub
 
+---
 
 ## 🗂️ Estructura Modular del Sistema
 
@@ -35,6 +42,7 @@ El sistema se divide en los siguientes módulos:
 
 Cada módulo está diseñado para ser independiente y reutilizable, respetando principios de encapsulamiento y separación de responsabilidades.
 
+---
 
 ## 📋 Requerimientos Funcionales
 
@@ -49,6 +57,8 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 | RF7    | El sistema permite elegir el tipo de entrega: domicilio o recogida en tienda. |
 | RF8    | El sistema genera un comprobante de pago electrónico (boleta o factura).    |
 | RF9    | El sistema notifica al personal de la botica los pedidos confirmados para su preparación. |
+
+---
 
 ## 🛡️ Requerimientos No Funcionales
 
@@ -65,12 +75,16 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 | RNF9   | El sistema debe cumplir con las normas de privacidad y cuidado de datos personales. |
 | RNF10  | El sistema debe contar con un diseño atractivo y ordenado que facilite la navegación. |
 
+---
+
 ## ⚙️ Instalación y Ejecución
 1. Clona este repositorio en tu máquina local: **https://github.com/SamantaCordova/Aplicacion-Web-Botica.git**
 2. Crea la base de datos en MySQL usando el script incluido en la carpeta /db.
 3. Configura el archivo de conexión a la base de datos en el proyecto (config o .env).
 4. Ejecuta el proyecto en tu IDE (VSCode o IntelliJ IDEA).
 5. Accede a la aplicación desde tu navegador en: http://localhost:8080
+
+---
 
 ## 🔄 Pasos para Clonar un Repositorio desde GitHub
 
@@ -89,6 +103,20 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 📺 Si necesitas ver cómo se hace paso a paso, puedes visualizar el siguiente video tutorial:
 👉 Clonar un repositorio Git de GitHub 2024 - YouTube
 https://www.youtube.com/watch?v=rAnn6vtLm90
+
+---
+
+## 📋 Responsabilidades
+
+| Nombre |  Rol  | Funciones | 
+|:-----|:--------:|:--------:|
+| Samanta Córdova   | Full Stack | Gestionar todo el ciclo de vida del desarrollo.|
+| Jennifer Paredes   | Backend|Crear y gestionar servicios backend para que se comunique de manera eficiente con el servidor.|
+| Piero Ferrel   | Full Stack |Desarrollar tanto el frontend como el backend.|
+| William Moreno   |  Frontend |Diseñar y desarrollar la interfaz de usuario.|
+| Alexander Macalopu   | Full Stack |Crear herramientas administrativas para gestionar usuarios y contenido.|
+
+---
 
 ## 📜 Licencia
 
