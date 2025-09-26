@@ -66,7 +66,7 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 | RNF10  | El sistema debe contar con un diseño atractivo y ordenado que facilite la navegación. |
 
 ## ⚙️ Instalación y Ejecución
-1. Clona este repositorio en tu máquina local: **git clone https://github.com/usuario/repositorio.git**
+1. Clona este repositorio en tu máquina local: **https://github.com/SamantaCordova/Aplicacion-Web-Botica.git**
 2. Crea la base de datos en MySQL usando el script incluido en la carpeta /db.
 3. Configura el archivo de conexión a la base de datos en el proyecto (config o .env).
 4. Ejecuta el proyecto en tu IDE (VSCode o IntelliJ IDEA).
