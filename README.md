@@ -105,13 +105,13 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 https://www.youtube.com/watch?v=rAnn6vtLm90
 
 ---
-## 📊 Diagramas
+📊 Diagramas  
 
-### Diagrama de Procesos (BPMN)
-![diagrama-de-procesos-a-implementar](docs/diagrama de procesos a implementar.png)
+**Diagrama de Procesos (BPMN)**  
+![diagrama-de-procesos-a-implementar](docs/diagrama%20de%20procesos%20a%20implementar.png)  
 
-### Diagrama Lógico de la Base de Datos
-![diagrama-logico](docs/diagrama logico.png)  
+**Diagrama Lógico de la Base de Datos**  
+![diagrama-logico](docs/diagrama%20logico.png)  
 
 ---
 
