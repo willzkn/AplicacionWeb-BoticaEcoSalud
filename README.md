@@ -108,9 +108,11 @@ https://www.youtube.com/watch?v=rAnn6vtLm90
 📊 Diagramas  
 
 **Diagrama de Procesos (BPMN)**  
+
 ![diagrama-de-procesos-a-implementar](docs/diagrama%20de%20procesos%20a%20implementar.png)  
 
 **Diagrama Lógico de la Base de Datos**  
+
 ![diagrama-logico](docs/diagrama%20logico.png)  
 
 ---
