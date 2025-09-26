@@ -1,5 +1,8 @@
 # 📦 Proyecto Integrador - 🩺 Aplicacion-Web-Botica
 
+Aplicación Web Botica es un sistema académico desarrollado como parte del Proyecto Integrador de la carrera de Ingeniería de Sistemas, orientado a la gestión automatizada de procesos de inventario, compras, ventas y reportes.
+El objetivo principal es automatizar procesos de inventario, compras, ventas y reportes en la empresa EcoSalud, aplicando principios de programación estructurada y modelado de procesos BPMN.
+
 ## 🎯 Objetivos del Proyecto
 
 - Desarrollar un sistema modular que automatice los procesos de inventario, compras, ventas y reportes.
@@ -62,6 +65,13 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 | RNF9   | El sistema debe cumplir con las normas de privacidad y cuidado de datos personales. |
 | RNF10  | El sistema debe contar con un diseño atractivo y ordenado que facilite la navegación. |
 
+## ⚙️ Instalación y Ejecución
+1. Clona este repositorio en tu máquina local: **git clone https://github.com/usuario/repositorio.git**
+2. Crea la base de datos en MySQL usando el script incluido en la carpeta /db.
+3. Configura el archivo de conexión a la base de datos en el proyecto (config o .env).
+4. Ejecuta el proyecto en tu IDE (VSCode o IntelliJ IDEA).
+5. Accede a la aplicación desde tu navegador en: http://localhost:8080
+
 ## 🔄 Pasos para Clonar un Repositorio desde GitHub
 
 1. Ingresa a [GitHub.com](https://github.com) y accede con tu cuenta.
@@ -79,5 +89,9 @@ Cada módulo está diseñado para ser independiente y reutilizable, respetando p
 📺 Si necesitas ver cómo se hace paso a paso, puedes visualizar el siguiente video tutorial:
 👉 Clonar un repositorio Git de GitHub 2024 - YouTube
 https://www.youtube.com/watch?v=rAnn6vtLm90
+
+## 📜 Licencia
+
+Este proyecto se desarrolló con fines académicos. Puedes usar el código como referencia bajo licencia MIT.
 
 
