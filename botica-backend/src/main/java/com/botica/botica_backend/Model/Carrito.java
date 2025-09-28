@@ -16,15 +16,18 @@ public class Carrito {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCarrito;
 
+    @Column(nullable = false)
     private Integer cantidad;
+    @Column(nullable = false)
     private Double precioUnitario;
+    @Column(nullable = false)
     private LocalDate fechaAgregado;
 
     @ManyToOne
-    @JoinColumn(name = "idUsuario")
+    @JoinColumn(name = "idUsuario", nullable = false)
     private Usuario usuario;
 
     @ManyToOne
-    @JoinColumn(name = "idProducto")
+    @JoinColumn(name = "idProducto", nullable = false)
     private Producto producto;
 }

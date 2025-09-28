@@ -15,15 +15,18 @@ public class Detalle_pedido {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDetalle;
 
+    @Column(nullable = false)
     private Integer cantidad;
+    @Column(nullable = false)
     private Double precioUnitario;
+    @Column(nullable = false)
     private Double subtotal;
 
     @ManyToOne
-    @JoinColumn(name = "idPedido")
+    @JoinColumn(name = "idPedido", nullable = false)
     private Pedido pedido;
 
     @ManyToOne
-    @JoinColumn(name = "idProducto")
+    @JoinColumn(name = "idProducto", nullable = false)
     private Producto producto;
 }
