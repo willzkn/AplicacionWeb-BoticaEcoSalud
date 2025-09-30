@@ -16,6 +16,7 @@ public class Categoria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCategoria;
 
+    @Column(nullable = false)
     private String nombre;
     private String descripcion;
     private Boolean activo;

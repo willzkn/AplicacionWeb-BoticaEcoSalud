@@ -15,8 +15,10 @@ public class Metodo_pago {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idMetodoPago;
 
+    @Column(nullable = false)
     private String nombre;
     private String descripcion;
+    @Column(nullable = false)
     private Boolean activo;
 }
 
