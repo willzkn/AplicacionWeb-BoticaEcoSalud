@@ -63,10 +63,13 @@ public class UsuarioService {
         // Guardar usuario
         Usuario guardado = usuarioRepository.save(usuario);
 
-        // Enviar email de bienvenida (no bloquear flujo si falla)
+        // Enviar email de bienvenida de forma asíncrona (no bloquear flujo si falla)
         try {
             emailService.enviarEmailBienvenida(guardado.getEmail(), guardado.getNombres());
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            // Log del error pero no fallar el registro
+            System.err.println("Error al enviar email de bienvenida: " + e.getMessage());
+        }
 
         return guardado;
     }

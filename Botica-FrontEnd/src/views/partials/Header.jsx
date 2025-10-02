@@ -93,9 +93,10 @@ function Header({
             className="search-input"
             placeholder="Busca una marca o producto"
             value={searchTerm}
-            onChange={onSearchChange}
-            onKeyPress={onSearchKeyPress}
+            onChange={onSearchChange || (() => {})}
+            onKeyPress={onSearchKeyPress || (() => {})}
             aria-label="Buscar"
+            autoComplete="off"
           />
         </div>
       </div>
