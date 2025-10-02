@@ -28,7 +28,7 @@ function Header({
     <div className="header">
       <div className="logo">
         <Link to="/" aria-label="Ir al inicio">
-          <img className="logo-img" src="/assets/Logodef.png" alt="EcoSalud" />
+          <img className="logo-img" src={`${process.env.PUBLIC_URL}/assets/Logodef.png`} alt="EcoSalud" />
         </Link>
       </div>
 
