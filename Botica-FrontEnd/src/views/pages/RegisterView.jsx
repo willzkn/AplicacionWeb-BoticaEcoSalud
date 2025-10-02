@@ -1,7 +1,9 @@
-import { useState } from "react";
-import axios from "axios";
+ import { useState } from "react";
+ import axios from "axios";
+ import MainLayout from "../layouts/MainLayout";
+ import "../../styles/ecosalud.css";
 
-export default function RegisterView() {
+ export default function RegisterView() {
   const [formData, setFormData] = useState({
     nombres: "",
     apellidos: "",
@@ -41,32 +43,114 @@ export default function RegisterView() {
     }
   };
 
-  return (
-    <div>
-      <h2>Registro de Usuario</h2>
-      <form onSubmit={handleSubmit}>
-        <input name="nombres" placeholder="Nombres" value={formData.nombres} onChange={handleChange} required />
-        <input name="apellidos" placeholder="Apellidos" value={formData.apellidos} onChange={handleChange} required />
-        <input name="email" type="email" placeholder="Correo" value={formData.email} onChange={handleChange} required />
-        <input name="password" type="password" placeholder="Contraseña" value={formData.password} onChange={handleChange} required />
-        <input name="telefono" placeholder="Teléfono" value={formData.telefono} onChange={handleChange} />
-        <input name="direccion" placeholder="Dirección" value={formData.direccion} onChange={handleChange} />
-        
-        <label>
-          Rol:
-          <select name="rol" value={formData.rol} onChange={handleChange}>
-            <option value="USER">Usuario</option>
-            <option value="ADMIN">Administrador</option>
-          </select>
-        </label>
+   return (
+     <MainLayout
+       searchTerm=""
+       onSearchChange={() => {}}
+       onSearchKeyPress={() => {}}
+     >
+       <div className="login-container liquid-glass">
+         <div className="blob blob-1" aria-hidden="true" />
+         <div className="blob blob-2" aria-hidden="true" />
 
-        <label>
-          Activo:
-          <input type="checkbox" name="activo" checked={formData.activo} onChange={handleChange} />
-        </label>
+         <div className="login-content">
+           <h2 className="login-title">Crear cuenta</h2>
+           <form onSubmit={handleSubmit}>
+             <div className="form-group">
+               <label className="form-label" htmlFor="nombres">Nombres</label>
+               <input
+                 id="nombres"
+                 name="nombres"
+                 className="form-input"
+                 placeholder="Nombres"
+                 value={formData.nombres}
+                 onChange={handleChange}
+                 required
+               />
+             </div>
 
-        <button type="submit">Registrarse</button>
-      </form>
-    </div>
-  );
+             <div className="form-group">
+               <label className="form-label" htmlFor="apellidos">Apellidos</label>
+               <input
+                 id="apellidos"
+                 name="apellidos"
+                 className="form-input"
+                 placeholder="Apellidos"
+                 value={formData.apellidos}
+                 onChange={handleChange}
+                 required
+               />
+             </div>
+
+             <div className="form-group">
+               <label className="form-label" htmlFor="email">Correo electrónico</label>
+               <input
+                 id="email"
+                 name="email"
+                 type="email"
+                 className="form-input"
+                 placeholder="Correo"
+                 value={formData.email}
+                 onChange={handleChange}
+                 required
+               />
+             </div>
+
+             <div className="form-group">
+               <label className="form-label" htmlFor="password">Contraseña</label>
+               <input
+                 id="password"
+                 name="password"
+                 type="password"
+                 className="form-input"
+                 placeholder="Contraseña"
+                 value={formData.password}
+                 onChange={handleChange}
+                 required
+               />
+             </div>
+
+             <div className="form-group">
+               <label className="form-label" htmlFor="telefono">Teléfono</label>
+               <input
+                 id="telefono"
+                 name="telefono"
+                 className="form-input"
+                 placeholder="Teléfono (opcional)"
+                 value={formData.telefono}
+                 onChange={handleChange}
+               />
+             </div>
+
+             <div className="form-group">
+               <label className="form-label" htmlFor="direccion">Dirección</label>
+               <input
+                 id="direccion"
+                 name="direccion"
+                 className="form-input"
+                 placeholder="Dirección (opcional)"
+                 value={formData.direccion}
+                 onChange={handleChange}
+               />
+             </div>
+
+             <div className="form-group">
+               <label className="form-label" htmlFor="rol">Rol</label>
+               <select id="rol" name="rol" className="form-input" value={formData.rol} onChange={handleChange}>
+                 <option value="USER">Usuario</option>
+                 <option value="ADMIN">Administrador</option>
+               </select>
+             </div>
+
+             <div className="form-group" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+               <input type="checkbox" id="activo" name="activo" checked={formData.activo} onChange={handleChange} />
+               <label className="form-label" htmlFor="activo" style={{ margin: 0 }}>Activo</label>
+             </div>
+
+             <button type="submit" className="login-button">Registrarse</button>
+           </form>
+         </div>
+       </div>
+     </MainLayout>
+   );
 }
