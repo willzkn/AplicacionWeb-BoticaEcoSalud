@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 import { initialLoginState } from '../models/LoginModel';
 
 export default function useLoginController() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState(initialLoginState.username);
   const [password, setPassword] = useState(initialLoginState.password);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,29 +26,32 @@ export default function useLoginController() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: username,   // 👈 tu backend espera "email"
-            password: password // 👈 y "password"
+            email: username,
+            password: password
           }),
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            alert('❌ Credenciales incorrectas');
+            return;
+          }
           throw new Error('Error al iniciar sesión');
         }
 
-        const data = await response.json(); // en tu backend retorna Boolean
-        if (data === true) {
-          alert('✅ Inicio de sesión exitoso');
-          // Redirigir a la página de inicio
-          navigate('/');
-        } else {
-          alert('❌ Credenciales incorrectas');
-        }
+        const userData = await response.json();
+        
+        // Guardar usuario en el contexto
+        login(userData);
+        
+        alert(`✅ Bienvenido ${userData.nombres}!`);
+        navigate('/');
       } catch (error) {
         console.error(error);
         alert('Error en el servidor');
       }
     },
-    [username, password, navigate]
+    [username, password, navigate, login]
   );
 
   const onSearchKeyPress = useCallback((e) => {

@@ -71,6 +71,24 @@ public class UsuarioService {
         return passwordEncoder.matches(password, usuario.getPassword());
     }
 
+    // Login con datos del usuario - Retorna el usuario completo si las credenciales son correctas
+    public Usuario iniciarSesionConDatos(String email, String password) {
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+        
+        if (usuarioOpt.isEmpty()) {
+            return null;
+        }
+        
+        Usuario usuario = usuarioOpt.get();
+        
+        // Verificar si la contraseña coincide con el hash almacenado
+        if (passwordEncoder.matches(password, usuario.getPassword())) {
+            return usuario;
+        }
+        
+        return null;
+    }
+
     // Update password - VERSIÓN MEJORADA CON VALIDACIÓN Y HASHEO
     @Transactional
     public void cambiarPassword(Long idUsuario, String nuevaPass) {

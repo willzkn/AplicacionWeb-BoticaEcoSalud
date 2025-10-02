@@ -7,6 +7,7 @@
  import CatalogoView from './views/pages/CatalogoView';
  import ProductDetail from './views/pages/ProductDetail';
  import { CartProvider } from './controllers/CartContext'; 
+ import { AuthProvider } from './controllers/AuthContext';
  import CarritoView from './views/pages/CarritoView'; 
  import Dashboard from './views/admin/Dashboard';
  import RequireAdmin from './views/admin/RequireAdmin';
@@ -18,8 +19,9 @@
 function App() {
   return (
     <HelmetProvider>
-      <CartProvider>
-        <BrowserRouter>
+      <AuthProvider>
+        <CartProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Inicio />} />
             <Route path="/login" element={<LoginView />} />
@@ -53,8 +55,9 @@ function App() {
               </RequireAdmin>
             } />
           </Routes>
-        </BrowserRouter>
-      </CartProvider>
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </HelmetProvider>
   );
 }

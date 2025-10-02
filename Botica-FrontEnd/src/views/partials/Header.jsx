@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../controllers/AuthContext';
 
 const SearchIcon = () => (
   <svg 
@@ -58,6 +59,9 @@ function Header({
   onSearchKeyPress,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -65,6 +69,12 @@ function Header({
 
   const closeMenu = () => {
     setIsMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate('/');
   };
 
   return (
@@ -105,7 +115,26 @@ function Header({
         <Link to="/" className="nav-link" onClick={closeMenu}>Inicio</Link>
         <Link to="/catalogo" className="nav-link" onClick={closeMenu}>Catálogo</Link>
         <Link to="/carrito" className="nav-link" onClick={closeMenu}>Carrito</Link>
-        <Link to="/login" className="login-btn" onClick={closeMenu}>Iniciar sesión</Link>
+        
+        {isAuthenticated() ? (
+          <div className="user-menu-container">
+            <button 
+              className="user-btn" 
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              {user?.nombres || 'Usuario'}
+            </button>
+            {showUserMenu && (
+              <div className="user-dropdown">
+                <button onClick={handleLogout} className="logout-btn">
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/login" className="login-btn" onClick={closeMenu}>Iniciar sesión</Link>
+        )}
       </nav>
 
       {/* Overlay para cerrar el menú al hacer click fuera */}

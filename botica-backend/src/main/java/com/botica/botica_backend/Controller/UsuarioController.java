@@ -38,13 +38,21 @@ public class UsuarioController {
     }
 
 
-    // Iniciar sesión
+    // Iniciar sesión - Retorna datos del usuario
     @PostMapping("/login")
-    public ResponseEntity<Boolean> login(@RequestBody Map<String, String> loginData) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
         String email = loginData.get("email");
         String password = loginData.get("password");
-        boolean exito = usuarioService.iniciarSesion(email, password);
-        return ResponseEntity.ok(exito);
+        
+        Usuario usuario = usuarioService.iniciarSesionConDatos(email, password);
+        
+        if (usuario != null) {
+            // No retornar la contraseña por seguridad
+            usuario.setPassword(null);
+            return ResponseEntity.ok(usuario);
+        } else {
+            return ResponseEntity.status(401).body("Credenciales incorrectas");
+        }
     }
 
     // Cambiar contraseña
