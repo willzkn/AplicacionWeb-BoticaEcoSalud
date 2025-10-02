@@ -22,7 +22,6 @@ public class Usuario {
     @NotBlank
     @Column(nullable = false, unique = true)
     private String email;
-    @NotBlank
     @Column(nullable = false)
     private String password;
     @NotBlank
@@ -31,6 +30,7 @@ public class Usuario {
     @NotBlank
     @Column(nullable = false)
     private String apellidos;
+    @Column(unique = true)
     private String telefono;
     private String direccion;
     private String rol;

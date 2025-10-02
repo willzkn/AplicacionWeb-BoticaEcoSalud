@@ -30,6 +30,13 @@ public class UsuarioService {
             throw new IllegalArgumentException("El email ya está registrado");
         }
 
+        // Validación de teléfono
+        if (usuario.getTelefono() != null && !usuario.getTelefono().trim().isEmpty()) {
+            if (usuarioRepository.existsByTelefono(usuario.getTelefono())) {
+                throw new IllegalArgumentException("El teléfono ya está registrado");
+            }
+        }
+
         // Hashear la contraseña antes de guardar
         String passwordHasheada = passwordEncoder.encode(usuario.getPassword());
         usuario.setPassword(passwordHasheada);
