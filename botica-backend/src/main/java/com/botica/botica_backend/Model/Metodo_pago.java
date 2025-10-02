@@ -13,7 +13,10 @@ import lombok.AllArgsConstructor;
 public class Metodo_pago {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Column(name = "id_metodo")
     private Long idMetodoPago;
+
 
     @Column(nullable = false)
     private String nombre;
