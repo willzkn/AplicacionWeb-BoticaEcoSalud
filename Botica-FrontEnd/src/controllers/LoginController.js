@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { initialLoginState } from '../models/LoginModel';
 
 export default function useLoginController() {
+  const navigate = useNavigate();
   const [username, setUsername] = useState(initialLoginState.username);
   const [password, setPassword] = useState(initialLoginState.password);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,6 +36,8 @@ export default function useLoginController() {
         const data = await response.json(); // en tu backend retorna Boolean
         if (data === true) {
           alert('✅ Inicio de sesión exitoso');
+          // Redirigir a la página de inicio
+          navigate('/');
         } else {
           alert('❌ Credenciales incorrectas');
         }
@@ -42,7 +46,7 @@ export default function useLoginController() {
         alert('Error en el servidor');
       }
     },
-    [username, password]
+    [username, password, navigate]
   );
 
   const onSearchKeyPress = useCallback((e) => {
