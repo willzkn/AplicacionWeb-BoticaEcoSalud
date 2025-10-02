@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,20 +20,27 @@ public class UsuarioService {
         return usuarioRepository.findAll();
     }
 
-    // Create
+    // Create - VERSIÓN CORREGIDA
     @Transactional
     public Usuario registrarUsuario(Usuario usuario) {
-        // Validaciones de negocio simples
-        // (Bean Validation en la entidad se encarga de formato/blank)
-        Optional<Usuario> existente = usuarioRepository
-                .findAll()
-                .stream()
-                .filter(u -> u.getEmail().equalsIgnoreCase(usuario.getEmail()))
-                .findFirst();
-        if (existente.isPresent()) {
+        // Validación de email
+        if (usuarioRepository.existsByEmailIgnoreCase(usuario.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
-        usuario.setActivo(Boolean.TRUE);
+
+        // Asignar valores por defecto que pueden faltar
+        usuario.setActivo(true);
+
+        // Fecha de registro obligatoria
+        if (usuario.getFechaRegistro() == null) {
+            usuario.setFechaRegistro(LocalDate.now());
+        }
+
+        // Rol por defecto
+        if (usuario.getRol() == null || usuario.getRol().trim().isEmpty()) {
+            usuario.setRol("cliente");
+        }
+
         return usuarioRepository.save(usuario);
     }
 
@@ -41,14 +49,32 @@ public class UsuarioService {
         return usuarioRepository.iniciarSesion(email, password);
     }
 
-    // Update password
+    // Update password - VERSIÓN MEJORADA CON VALIDACIÓN
     @Transactional
     public void cambiarPassword(Long idUsuario, String nuevaPass) {
+        // Validar que el usuario existe
+        if (!usuarioRepository.existsById(idUsuario)) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
         usuarioRepository.cambiarPassword(idUsuario, nuevaPass);
     }
 
-    // Obtener dirección de entrega (proceso)
+    // Obtener dirección de entrega - VERSIÓN MEJORADA CON VALIDACIÓN
     public String obtenerDireccionEntrega(Long idUsuario) {
+        // Validar que el usuario existe
+        if (!usuarioRepository.existsById(idUsuario)) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
         return usuarioRepository.obtenerDireccionEntrega(idUsuario);
+    }
+
+    // MÉTODO ADICIONAL ÚTIL: Buscar usuario por ID
+    public Optional<Usuario> findById(Long id) {
+        return usuarioRepository.findById(id);
+    }
+
+    // MÉTODO ADICIONAL ÚTIL: Verificar si usuario existe
+    public boolean existsById(Long id) {
+        return usuarioRepository.existsById(id);
     }
 }

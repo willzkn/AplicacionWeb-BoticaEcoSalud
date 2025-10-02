@@ -10,14 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-    // iniciarSesion(email, password) : boolean
-    @Query("SELECT CASE WHEN (COUNT(u) > 0) THEN true ELSE false END FROM Usuario u WHERE u.email = :email AND u.password = :password")
+
+    boolean existsByEmailIgnoreCase(String email);
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM Usuario u WHERE u.email = :email AND u.password = :password")
     boolean iniciarSesion(
             @Param("email") String email,
             @Param("password") String password
     );
 
-    // cambiarPassword(id, nuevaPass)
     @Modifying
     @Transactional
     @Query("UPDATE Usuario u SET u.password = :nuevaPass WHERE u.idUsuario = :id")
@@ -26,7 +27,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             @Param("nuevaPass") String nuevaPass
     );
 
-    // obtenerDireccionEntrega(id) : string
     @Query("SELECT u.direccion FROM Usuario u WHERE u.idUsuario = :id")
     String obtenerDireccionEntrega(@Param("id") Long idUsuario);
 }
