@@ -2,7 +2,7 @@ import React from 'react';
 import Header from '../partials/Header';
 import Footer from '../partials/Footer';
 
-function MainLayout({ children, searchTerm = '', onSearchChange, onSearchKeyPress, backgroundImageUrl = '/assets/mi-fondo.JPG' }) {
+function MainLayout({ children, searchTerm = '', onSearchChange, onSearchKeyPress, backgroundImageUrl = `${process.env.PUBLIC_URL}/assets/mi-fondo.JPG` }) {
   const rootStyle = backgroundImageUrl
     ? { ['--app-bg-image']: `url(${backgroundImageUrl})` }
     : undefined;

@@ -30,4 +30,9 @@ public class CategoriaService {
             categoriaRepository.save(c);
         });
     }
+
+    public List<Categoria> listarTodas() {
+        return categoriaRepository.findAll();
+    }
+
 }

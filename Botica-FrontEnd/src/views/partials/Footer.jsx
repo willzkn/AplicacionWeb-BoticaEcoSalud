@@ -20,7 +20,7 @@ function Footer() {
       </div>
       <div className="footer-section">
         <div className="footer-logo">
-          <img className="footer-logo-img" src="/assets/Logodef.png" alt="EcoSalud" />
+          <img className="footer-logo-img" src={`${process.env.PUBLIC_URL}/assets/Logodef.png`} alt="EcoSalud" />
           <div>
             <p style={{ margin: 0, fontWeight: 'bold' }}>
               "Cuidamos tu salud con cercanía y confianza"

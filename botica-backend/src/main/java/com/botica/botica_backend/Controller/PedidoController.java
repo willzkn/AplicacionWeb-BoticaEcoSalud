@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pedidos")
@@ -17,22 +17,34 @@ public class PedidoController {
 
     private final PedidoService pedidoService;
 
-    @GetMapping("/historial/{idUsuario}")
-    public ResponseEntity<List<Pedido>> historialUsuario(@PathVariable Long idUsuario) {
-        return ResponseEntity.ok(pedidoService.obtenerHistorialUsuario(idUsuario));
+    // Crear pedido a partir de DTO (con validación de stock)
+    @PostMapping("/create")
+    public ResponseEntity<Pedido> crearPedido(@RequestBody PedidoCreateDTO dto) {
+        Pedido nuevo = pedidoService.crearPedidoDesdeDTO(dto);
+        return ResponseEntity.ok(nuevo);
     }
 
-    @PatchMapping("/{id}/estado")
-    public ResponseEntity<Void> actualizarEstado(@PathVariable("id") Long idPedido,
-                                                 @RequestParam("estado") String nuevoEstado) {
-        pedidoService.actualizarEstado(idPedido, nuevoEstado);
+    // Actualizar estado de un pedido
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<Void> actualizarEstado(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        String nuevoEstado = body.get("nuevoEstado");
+        pedidoService.actualizarEstado(id, nuevoEstado);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping
-    public ResponseEntity<Pedido> crear(@RequestBody PedidoCreateDTO dto) {
-        Pedido creado = pedidoService.crearPedidoDesdeDTO(dto);
-        return ResponseEntity.created(URI.create("/api/pedidos/" + (creado.getIdPedido() != null ? creado.getIdPedido() : "")))
-                .body(creado);
+    // Obtener historial de pedidos de un usuario
+    @GetMapping("/usuario/{idUsuario}")
+    public ResponseEntity<List<Pedido>> historialUsuario(@PathVariable Long idUsuario) {
+        List<Pedido> historial = pedidoService.obtenerHistorialUsuario(idUsuario);
+        return ResponseEntity.ok(historial);
+    }
+
+    // Listar todos los pedidos
+    @GetMapping("/all")
+    public ResponseEntity<List<Pedido>> listarTodos() {
+        return ResponseEntity.ok(pedidoService.listarTodos());
     }
 }

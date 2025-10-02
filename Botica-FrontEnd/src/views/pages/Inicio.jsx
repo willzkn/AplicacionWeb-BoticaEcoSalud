@@ -124,18 +124,18 @@ const ImageSlider = ({ slides }) => {
 // Componente principal de Inicio
 const Inicio = () => {
   const sliderImages = [
-    { id: 1, src: "/assets/slider1.JPG", alt: "Producto destacado 1" },
-    { id: 2, src: "/assets/slider2.JPG", alt: "Producto destacado 2" },
-    { id: 3, src: "/assets/slider3.JPG", alt: "Producto destacado 3" }
+    { id: 1, src: `${process.env.PUBLIC_URL}/assets/slider1.JPG`, alt: "Producto destacado 1" },
+    { id: 2, src: `${process.env.PUBLIC_URL}/assets/slider2.JPG`, alt: "Producto destacado 2" },
+    { id: 3, src: `${process.env.PUBLIC_URL}/assets/slider3.JPG`, alt: "Producto destacado 3" }
   ];
 
   const gridImages = [
-    { id: 1, src: "/assets/grid-1.JPG", alt: "Producto 1" },
-    { id: 2, src: "/assets/grid-2.JPG", alt: "Producto 2" },
-    { id: 3, src: "/assets/grid-3.JPG", alt: "Producto 3" },
-    { id: 4, src: "/assets/grid-4.JPG", alt: "Producto 4" },
-    { id: 5, src: "/assets/grid-5.JPG", alt: "Producto 5" },
-    { id: 6, src: "/assets/grid-6.JPG", alt: "Producto 6" }
+    { id: 1, src: `${process.env.PUBLIC_URL}/assets/grid-1.JPG`, alt: "Producto 1" },
+    { id: 2, src: `${process.env.PUBLIC_URL}/assets/grid-2.JPG`, alt: "Producto 2" },
+    { id: 3, src: `${process.env.PUBLIC_URL}/assets/grid-3.JPG`, alt: "Producto 3" },
+    { id: 4, src: `${process.env.PUBLIC_URL}/assets/grid-4.JPG`, alt: "Producto 4" },
+    { id: 5, src: `${process.env.PUBLIC_URL}/assets/grid-5.JPG`, alt: "Producto 5" },
+    { id: 6, src: `${process.env.PUBLIC_URL}/assets/grid-6.JPG`, alt: "Producto 6" }
   ];
 
   return (

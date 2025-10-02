@@ -26,7 +26,7 @@ function CarritoView() {
     }, [cart]);
 
     return (
-        <MainLayout backgroundImageUrl="/assets/fondo-carrito.JPG"> 
+        <MainLayout backgroundImageUrl={`${process.env.PUBLIC_URL}/assets/mi-fondo.JPG`}> 
             <div className="cart-container">
                 <h1 className="page-title">Resumen de compra</h1>                
                 {cart.length === 0 ? (
@@ -40,7 +40,6 @@ function CarritoView() {
                             <h2 id="products-in-cart" className="section-header">Productos de tu carrito</h2>
                             {cart.map(item => (
                                 <CartItem 
-                                    key={item.id} 
                                     item={item} 
                                     updateQuantity={updateCartQuantity} 
                                     removeItem={removeFromCart} 

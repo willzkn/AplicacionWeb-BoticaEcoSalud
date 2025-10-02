@@ -19,4 +19,8 @@ public class MetodoPagoService {
     public Metodo_pago obtenerDetalle(Long id) {
         return metodoPagoRepository.obtenerDetalle(id);
     }
+
+    public Metodo_pago crearMetodoPago(Metodo_pago metodoPago) {
+        return metodoPagoRepository.save(metodoPago);
+    }
 }

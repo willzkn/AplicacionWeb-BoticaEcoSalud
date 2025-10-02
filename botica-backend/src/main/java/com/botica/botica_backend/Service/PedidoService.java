@@ -91,4 +91,11 @@ public class PedidoService {
 
         return pedido;
     }
+
+    // Nuevo metodo para listar todos los pedidos
+    public List<Pedido> listarTodos() {
+        return pedidoRepository.findAll();
+    }
 }
+
+

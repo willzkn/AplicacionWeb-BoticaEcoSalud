@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -16,42 +16,56 @@ public class ProductoController {
 
     private final ProductoService productoService;
 
-    @GetMapping
+    // Listar todos los productos
+    @GetMapping("/all")
     public ResponseEntity<List<Producto>> listarTodos() {
         return ResponseEntity.ok(productoService.listarTodos());
     }
 
-    @PostMapping
-    public ResponseEntity<Producto> crear(@RequestBody Producto producto) {
-        Producto creado = productoService.crearProducto(producto);
-        return ResponseEntity.created(URI.create("/api/productos/" + (creado.getIdProducto() != null ? creado.getIdProducto() : "")))
-                .body(creado);
+    // Crear un nuevo producto
+    @PostMapping("/create")
+    public ResponseEntity<Producto> crearProducto(@RequestBody Producto producto) {
+        Producto nuevo = productoService.crearProducto(producto);
+        return ResponseEntity.ok(nuevo);
     }
 
-    @PatchMapping("/{id}/precio")
-    public ResponseEntity<Void> actualizarPrecio(@PathVariable("id") Long idProducto,
-                                                 @RequestParam("precio") Double nuevoPrecio) {
-        productoService.actualizarPrecio(idProducto, nuevoPrecio);
+    // Actualizar precio
+    @PutMapping("/{id}/precio")
+    public ResponseEntity<Void> actualizarPrecio(
+            @PathVariable Long id,
+            @RequestBody Map<String, Double> body
+    ) {
+        Double nuevoPrecio = body.get("nuevoPrecio");
+        productoService.actualizarPrecio(id, nuevoPrecio);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/stock")
-    public ResponseEntity<Void> actualizarStock(@PathVariable("id") Long idProducto,
-                                                @RequestParam("cantidad") Integer cantidad,
-                                                @RequestParam("tipoOperacion") String tipoOperacion) {
-        productoService.actualizarStock(idProducto, cantidad, tipoOperacion);
+    // Actualizar stock
+    @PutMapping("/{id}/stock")
+    public ResponseEntity<Void> actualizarStock(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body
+    ) {
+        Integer cantidad = (Integer) body.get("cantidad");
+        String tipoOperacion = (String) body.get("tipoOperacion"); // "ENTRADA" o "SALIDA"
+        productoService.actualizarStock(id, cantidad, tipoOperacion);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/validar-stock")
-    public ResponseEntity<Boolean> validarStock(@PathVariable("id") Long idProducto,
-                                                @RequestParam("cantidad") Integer cantidadDeseada) {
-        boolean ok = productoService.validarStock(idProducto, cantidadDeseada);
-        return ResponseEntity.ok(ok);
+    // Validar stock
+    @GetMapping("/{id}/validarStock")
+    public ResponseEntity<Boolean> validarStock(
+            @PathVariable Long id,
+            @RequestParam Integer cantidad
+    ) {
+        boolean valido = productoService.validarStock(id, cantidad);
+        return ResponseEntity.ok(valido);
     }
 
+    // Obtener productos alternativos (misma categoría)
     @GetMapping("/{id}/alternativas")
-    public ResponseEntity<List<Producto>> obtenerAlternativas(@PathVariable("id") Long idProducto) {
-        return ResponseEntity.ok(productoService.obtenerAlternativas(idProducto));
+    public ResponseEntity<List<Producto>> obtenerAlternativas(@PathVariable Long id) {
+        List<Producto> alternativas = productoService.obtenerAlternativas(id);
+        return ResponseEntity.ok(alternativas);
     }
 }
