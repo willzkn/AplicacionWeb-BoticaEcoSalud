@@ -3,6 +3,7 @@ package com.botica.botica_backend.Service;
 import com.botica.botica_backend.Model.Usuario;
 import com.botica.botica_backend.Repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,19 +15,24 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Read
     public List<Usuario> getUsuarios() {
         return usuarioRepository.findAll();
     }
 
-    // Create - VERSIÓN CORREGIDA
+    // Create - VERSIÓN CORREGIDA CON HASHEO DE CONTRASEÑA
     @Transactional
     public Usuario registrarUsuario(Usuario usuario) {
         // Validación de email
         if (usuarioRepository.existsByEmailIgnoreCase(usuario.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
+
+        // Hashear la contraseña antes de guardar
+        String passwordHasheada = passwordEncoder.encode(usuario.getPassword());
+        usuario.setPassword(passwordHasheada);
 
         // Asignar valores por defecto que pueden faltar
         usuario.setActivo(true);
@@ -44,19 +50,31 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    // Login (proceso)
+    // Login (proceso) - VERSIÓN CON VERIFICACIÓN DE CONTRASEÑA HASHEADA
     public boolean iniciarSesion(String email, String password) {
-        return usuarioRepository.iniciarSesion(email, password);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+        
+        if (usuarioOpt.isEmpty()) {
+            return false;
+        }
+        
+        Usuario usuario = usuarioOpt.get();
+        
+        // Verificar si la contraseña coincide con el hash almacenado
+        return passwordEncoder.matches(password, usuario.getPassword());
     }
 
-    // Update password - VERSIÓN MEJORADA CON VALIDACIÓN
+    // Update password - VERSIÓN MEJORADA CON VALIDACIÓN Y HASHEO
     @Transactional
     public void cambiarPassword(Long idUsuario, String nuevaPass) {
         // Validar que el usuario existe
         if (!usuarioRepository.existsById(idUsuario)) {
             throw new IllegalArgumentException("Usuario no encontrado");
         }
-        usuarioRepository.cambiarPassword(idUsuario, nuevaPass);
+        
+        // Hashear la nueva contraseña antes de guardarla
+        String passwordHasheada = passwordEncoder.encode(nuevaPass);
+        usuarioRepository.cambiarPassword(idUsuario, passwordHasheada);
     }
 
     // Obtener dirección de entrega - VERSIÓN MEJORADA CON VALIDACIÓN

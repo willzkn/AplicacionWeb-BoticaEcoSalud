@@ -8,10 +8,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     boolean existsByEmailIgnoreCase(String email);
+    
+    Optional<Usuario> findByEmail(String email);
 
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM Usuario u WHERE u.email = :email AND u.password = :password")
     boolean iniciarSesion(
