@@ -1,15 +1,44 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../controllers/AuthContext';
 
 function Footer() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <div className="footer">
       <div className="footer-section">
         <h4>Accesos directos</h4>
-        <Link to="/login">Inicio</Link>
+        <Link to="/">Inicio</Link>
         <Link to="/catalogo">Catálogo</Link>
         <Link to="/carrito">Carrito</Link>
-        <Link to="/login">Iniciar sesión</Link>
+        {isAuthenticated() ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ color: '#fff' }}>👤 {user?.nombres || 'Usuario'}</span>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: '1px solid #fff',
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        ) : (
+          <Link to="/login">Iniciar sesión</Link>
+        )}
       </div>
       <div className="footer-section">
         <h4>Contáctanos</h4>
