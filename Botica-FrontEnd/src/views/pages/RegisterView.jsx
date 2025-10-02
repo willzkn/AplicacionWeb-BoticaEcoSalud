@@ -11,8 +11,8 @@
     password: "",
     telefono: "",
     direccion: "",
-    rol: "USER", // Puedes dejar un valor por defecto
-    activo: true // Activar automáticamente al registrar
+    rol: "", 
+    activo: true 
   });
 
   const handleChange = (e) => {
@@ -24,24 +24,26 @@
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:8080/api/usuarios/register", formData);
-      alert("Usuario registrado correctamente!");
-      setFormData({
-        nombres: "",
-        apellidos: "",
-        email: "",
-        password: "",
-        telefono: "",
-        direccion: "",
-        rol: "USER",
-        activo: true
-      });
-    } catch (error) {
-      alert(error.response?.data || "Error al registrar usuario");
-    }
-  };
+  e.preventDefault();
+  try {
+    const res = await axios.post("http://localhost:8080/api/usuarios/register", formData);
+    alert("Usuario registrado correctamente!");
+    setFormData({
+      nombres: "",
+      apellidos: "",
+      email: "",
+      password: "",
+      telefono: "",
+      direccion: "",
+      rol: "",
+      activo: true
+    });
+  } catch (error) {
+    // Ahora recibirá 400 con el mensaje específico en lugar de 403
+    const errorMessage = error.response?.data || "Error al registrar usuario";
+    alert(errorMessage);
+  }
+};
 
    return (
      <MainLayout
@@ -137,8 +139,8 @@
              <div className="form-group">
                <label className="form-label" htmlFor="rol">Rol</label>
                <select id="rol" name="rol" className="form-input" value={formData.rol} onChange={handleChange}>
-                 <option value="USER">Usuario</option>
-                 <option value="ADMIN">Administrador</option>
+                 <option value="cliente">Cliente</option>
+                 <option value="admin">Administrador</option>
                </select>
              </div>
 
