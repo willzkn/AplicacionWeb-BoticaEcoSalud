@@ -26,6 +26,7 @@ public class PedidoService {
     private final MetodoPagoRepository metodoPagoRepository;
     private final ProductoRepository productoRepository;
     private final DetallePedidoRepository detallePedidoRepository;
+    private final EmailService emailService;
 
     public List<Pedido> obtenerHistorialUsuario(Long idUsuario) {
         return pedidoRepository.obtenerHistorialUsuario(idUsuario);
@@ -34,6 +35,19 @@ public class PedidoService {
     @Transactional
     public void actualizarEstado(Long idPedido, String nuevoEstado) {
         pedidoRepository.actualizarEstado(idPedido, nuevoEstado);
+        
+        // Enviar email de cambio de estado
+        try {
+            Pedido pedido = pedidoRepository.findById(idPedido).orElse(null);
+            if (pedido != null && pedido.getUsuario() != null) {
+                emailService.enviarCambioEstadoPedido(
+                    pedido.getUsuario().getEmail(),
+                    pedido.getUsuario().getNombres(),
+                    idPedido,
+                    nuevoEstado
+                );
+            }
+        } catch (Exception ignored) { }
     }
 
     @Transactional
@@ -88,6 +102,16 @@ public class PedidoService {
             // Si no usas triggers para stock, descomenta la siguiente línea para decrementar stock
             productoRepository.actualizarStock(item.getIdProducto(), item.getCantidad(), "SALIDA");
         }
+
+        // 5. Enviar email de confirmación de pedido
+        try {
+            emailService.enviarConfirmacionPedido(
+                usuario.getEmail(),
+                usuario.getNombres(),
+                pedido.getIdPedido(),
+                pedido.getTotal()
+            );
+        } catch (Exception ignored) { }
 
         return pedido;
     }

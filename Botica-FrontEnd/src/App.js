@@ -3,6 +3,8 @@
  import { HelmetProvider } from 'react-helmet-async';
  import LoginView from './views/pages/LoginView';
  import RegisterView from './views/pages/RegisterView'; 
+ import ForgotPasswordView from './views/pages/ForgotPasswordView';
+ import ResetPasswordView from './views/pages/ResetPasswordView';
  import Inicio from './views/pages/Inicio';
  import CatalogoView from './views/pages/CatalogoView';
  import ProductDetail from './views/pages/ProductDetail';
@@ -26,6 +28,8 @@ function App() {
             <Route path="/" element={<Inicio />} />
             <Route path="/login" element={<LoginView />} />
             <Route path="/register" element={<RegisterView />} /> 
+            <Route path="/forgot-password" element={<ForgotPasswordView />} />
+            <Route path="/reset-password" element={<ResetPasswordView />} />
             <Route path="/catalogo" element={<CatalogoView />} />
             <Route path="/producto/:id" element={<ProductDetail />} />
             <Route path="/carrito" element={<CarritoView />} /> 

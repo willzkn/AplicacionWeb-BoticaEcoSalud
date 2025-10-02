@@ -57,6 +57,9 @@ function LoginView() {
             </div>
             <button type="submit" className="login-button">Aceptar</button>
           </form>
+          <div className="forgot-password-link">
+            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+          </div>
           <div className="register-link">
             ¿No tienes una cuenta?<br />
             <Link to="/register">Regístrate aquí</Link>

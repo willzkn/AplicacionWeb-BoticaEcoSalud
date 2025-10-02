@@ -72,4 +72,31 @@ public class UsuarioController {
         String direccion = usuarioService.obtenerDireccionEntrega(id);
         return ResponseEntity.ok(direccion);
     }
+
+    // Solicitar recuperación de contraseña
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> solicitarRecuperacion(@RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            usuarioService.solicitarRecuperacionPassword(email);
+            return ResponseEntity.ok("Si el email existe, recibirás un enlace de recuperación");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al procesar solicitud");
+        }
+    }
+
+    // Restablecer contraseña con token
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> restablecerPassword(@RequestBody Map<String, String> body) {
+        try {
+            String token = body.get("token");
+            String nuevaPassword = body.get("nuevaPassword");
+            usuarioService.restablecerPasswordConToken(token, nuevaPassword);
+            return ResponseEntity.ok("Contraseña actualizada exitosamente");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al restablecer contraseña");
+        }
+    }
 }

@@ -20,13 +20,13 @@ function Footer() {
         <Link to="/carrito">Carrito</Link>
         {isAuthenticated() ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ color: '#fff' }}>👤 {user?.nombres || 'Usuario'}</span>
+            <span style={{ color: '#1E4099' }}>👤 {user?.nombres || 'Usuario'}</span>
             <button 
               onClick={handleLogout}
               style={{
                 background: 'transparent',
-                border: '1px solid #fff',
-                color: '#fff',
+                border: '1px solid #1E4099',
+                color: '#1E4099',
                 padding: '4px 8px',
                 borderRadius: '4px',
                 cursor: 'pointer',

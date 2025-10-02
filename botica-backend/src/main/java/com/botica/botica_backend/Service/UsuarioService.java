@@ -1,21 +1,27 @@
 package com.botica.botica_backend.Service;
 
 import com.botica.botica_backend.Model.Usuario;
+import com.botica.botica_backend.Model.PasswordResetToken;
 import com.botica.botica_backend.Repository.UsuarioRepository;
+import com.botica.botica_backend.Repository.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final PasswordResetTokenRepository tokenRepository;
 
     // Read
     public List<Usuario> getUsuarios() {
@@ -54,7 +60,15 @@ public class UsuarioService {
             usuario.setRol("cliente");
         }
 
-        return usuarioRepository.save(usuario);
+        // Guardar usuario
+        Usuario guardado = usuarioRepository.save(usuario);
+
+        // Enviar email de bienvenida (no bloquear flujo si falla)
+        try {
+            emailService.enviarEmailBienvenida(guardado.getEmail(), guardado.getNombres());
+        } catch (Exception ignored) { }
+
+        return guardado;
     }
 
     // Login (proceso) - VERSIÓN CON VERIFICACIÓN DE CONTRASEÑA HASHEADA
@@ -119,5 +133,79 @@ public class UsuarioService {
     // MÉTODO ADICIONAL ÚTIL: Verificar si usuario existe
     public boolean existsById(Long id) {
         return usuarioRepository.existsById(id);
+    }
+
+    // ========================================
+    // RECUPERACIÓN DE CONTRASEÑA
+    // ========================================
+
+    /**
+     * Solicitar recuperación de contraseña - Genera token y envía email
+     */
+    @Transactional
+    public void solicitarRecuperacionPassword(String email) {
+        // Buscar usuario por email
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+        
+        if (usuarioOpt.isEmpty()) {
+            // Por seguridad, no revelamos si el email existe o no
+            return;
+        }
+        
+        Usuario usuario = usuarioOpt.get();
+        
+        // Eliminar tokens anteriores del usuario
+        tokenRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());
+        
+        // Generar nuevo token
+        String token = UUID.randomUUID().toString();
+        
+        // Crear registro de token (expira en 1 hora)
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setToken(token);
+        resetToken.setUsuario(usuario);
+        resetToken.setFechaExpiracion(LocalDateTime.now().plusHours(1));
+        resetToken.setUsado(false);
+        tokenRepository.save(resetToken);
+        
+        // Enviar email con el token
+        try {
+            emailService.enviarRecuperacionPassword(
+                usuario.getEmail(),
+                usuario.getNombres(),
+                token
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar email de recuperación");
+        }
+    }
+
+    /**
+     * Restablecer contraseña usando el token
+     */
+    @Transactional
+    public void restablecerPasswordConToken(String token, String nuevaPassword) {
+        // Buscar token
+        PasswordResetToken resetToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Token inválido"));
+        
+        // Validar que no esté usado
+        if (resetToken.getUsado()) {
+            throw new IllegalArgumentException("Este token ya fue utilizado");
+        }
+        
+        // Validar que no esté expirado
+        if (resetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Este token ha expirado");
+        }
+        
+        // Cambiar contraseña
+        Usuario usuario = resetToken.getUsuario();
+        String passwordHasheada = passwordEncoder.encode(nuevaPassword);
+        usuarioRepository.cambiarPassword(usuario.getIdUsuario(), passwordHasheada);
+        
+        // Marcar token como usado
+        resetToken.setUsado(true);
+        tokenRepository.save(resetToken);
     }
 }
