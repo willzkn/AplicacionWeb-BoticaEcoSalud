@@ -1,9 +1,11 @@
  import { useState } from "react";
+ import { useNavigate } from "react-router-dom";
  import axios from "axios";
  import MainLayout from "../layouts/MainLayout";
  import "../../styles/ecosalud.css";
 
  export default function RegisterView() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombres: "",
     apellidos: "",
@@ -82,17 +84,9 @@
       // No enviar confirmPassword al backend
       const { confirmPassword, ...dataToSend } = formData;
       const res = await axios.post("http://localhost:8080/api/usuarios/register", dataToSend);
-      alert("Usuario registrado correctamente!");
-      setFormData({
-        nombres: "",
-        apellidos: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        telefono: "",
-        direccion: ""
-      });
-      setErrors({});
+      alert("✅ Usuario registrado correctamente! Ahora puedes iniciar sesión.");
+      // Redirigir al login
+      navigate('/login');
     } catch (error) {
       alert(error.response?.data || "Error al registrar usuario");
     }
