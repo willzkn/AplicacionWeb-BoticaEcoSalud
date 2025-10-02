@@ -7,13 +7,40 @@ export default function useLoginController() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const onSubmit = useCallback(
-    (e) => {
+    async (e) => {
       e.preventDefault();
+
       if (!username || !password) {
         alert('Por favor, completa todos los campos');
         return;
       }
-      alert('Iniciando sesión...');
+
+      try {
+        const response = await fetch('http://localhost:8080/api/usuarios/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: username,   // 👈 tu backend espera "email"
+            password: password // 👈 y "password"
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al iniciar sesión');
+        }
+
+        const data = await response.json(); // en tu backend retorna Boolean
+        if (data === true) {
+          alert('✅ Inicio de sesión exitoso');
+        } else {
+          alert('❌ Credenciales incorrectas');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Error en el servidor');
+      }
     },
     [username, password]
   );
