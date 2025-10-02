@@ -22,11 +22,19 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.getUsuarios());
     }
 
-    // Registrar un nuevo usuario
+    // Registrar un nuevo usuario - VERSIÓN MODIFICADA
     @PostMapping("/register")
-    public ResponseEntity<Usuario> registrarUsuario(@RequestBody Usuario usuario) {
-        Usuario nuevo = usuarioService.registrarUsuario(usuario);
-        return ResponseEntity.ok(nuevo);
+    public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
+        try {
+            Usuario nuevo = usuarioService.registrarUsuario(usuario);
+            return ResponseEntity.ok(nuevo);
+        } catch (IllegalArgumentException e) {
+            // Convertir a 400 Bad Request para errores de negocio
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            // Para cualquier otro error inesperado
+            return ResponseEntity.internalServerError().body("Error interno del servidor");
+        }
     }
 
 
