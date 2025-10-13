@@ -84,7 +84,7 @@ function CarritoView() {
                                         className="accordion-header"
                                         onClick={() => setActiveStep(activeStep === 1 ? 0 : 1)}
                                     >
-                                        <span>1. Dirección de envío o retiro</span>
+                                        <span>1. Método de entrega</span>
                                         <span>{activeStep === 1 ? '▼' : '▶'}</span>
                                     </button>
                                     {activeStep === 1 && (
@@ -98,7 +98,7 @@ function CarritoView() {
                                                         checked={shippingData.tipo === 'envio'}
                                                         onChange={(e) => setShippingData({...shippingData, tipo: e.target.value})}
                                                     />
-                                                    Envío a domicilio
+                                                    Delivery
                                                 </label>
                                                 <label>
                                                     <input 
@@ -108,7 +108,7 @@ function CarritoView() {
                                                         checked={shippingData.tipo === 'retiro'}
                                                         onChange={(e) => setShippingData({...shippingData, tipo: e.target.value})}
                                                     />
-                                                    Retiro en tienda
+                                                    Recojo en tienda
                                                 </label>
                                             </div>
                                             
@@ -123,7 +123,7 @@ function CarritoView() {
                                                     />
                                                     <input 
                                                         type="text"
-                                                        placeholder="Referencia (opcional)"
+                                                        placeholder="Ejm: Av. Los Pinos 456, Dpto. 302"
                                                         value={shippingData.referencia}
                                                         onChange={(e) => setShippingData({...shippingData, referencia: e.target.value})}
                                                         className="form-input"
@@ -135,10 +135,10 @@ function CarritoView() {
                                                     onChange={(e) => setShippingData({...shippingData, tienda: e.target.value})}
                                                     className="form-input"
                                                 >
-                                                    <option value="">Selecciona una tienda</option>
-                                                    <option value="tienda1">Tienda Los Olivos</option>
-                                                    <option value="tienda2">Tienda San Miguel</option>
-                                                    <option value="tienda3">Tienda Miraflores</option>
+                                                    <option value="">Selecciona una sede</option>
+                                                    <option value="tienda1">Sede Los Olivos</option>
+                                                    <option value="tienda2">Sede San Miguel</option>
+                                                    <option value="tienda3">Sede Miraflores</option>
                                                 </select>
                                             )}
                                             <button 
@@ -157,7 +157,7 @@ function CarritoView() {
                                         className="accordion-header"
                                         onClick={() => setActiveStep(activeStep === 2 ? 0 : 2)}
                                     >
-                                        <span>2. Datos de contacto</span>
+                                        <span>2. Tus datos </span>
                                         <span>{activeStep === 2 ? '▼' : '▶'}</span>
                                     </button>
                                     {activeStep === 2 && (
