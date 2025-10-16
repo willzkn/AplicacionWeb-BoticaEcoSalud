@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/inicio.css';
 import Header from '../partials/Header';
 import Footer from '../partials/Footer';
+import Chatbot from '../partials/Chatbot';
 
 // Componente de flecha para navegación
 const Arrow = ({ direction, onClick }) => (
@@ -162,6 +163,7 @@ const Inicio = () => {
         </section>
       </main>
       <Footer />
+      <Chatbot />
     </div>
   );
 };
