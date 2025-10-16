@@ -193,12 +193,12 @@
              </div>
 
              <div className="form-group">
-               <label className="form-label" htmlFor="direccion">Dirección</label>
+               <label className="form-label" htmlFor="direccion"> Distrito </label>
                <input
                  id="direccion"
                  name="direccion"
                  className="form-input"
-                 placeholder="Ej: Av. Los Olivos 345, Lima"
+                 placeholder="Ej: Comas"
                  value={formData.direccion}
                  onChange={handleChange}
                />
