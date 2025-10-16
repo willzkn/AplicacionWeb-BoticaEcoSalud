@@ -5,6 +5,8 @@ import com.botica.botica_backend.Service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UsuarioController {
 
+    private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
     private final UsuarioService usuarioService;
 
     @GetMapping("/all")
@@ -40,20 +43,24 @@ public class UsuarioController {
 
     // Iniciar sesión - Retorna datos del usuario
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-        String email = loginData.get("email");
-        String password = loginData.get("password");
-        
-        Usuario usuario = usuarioService.iniciarSesionConDatos(email, password);
-        
-        if (usuario != null) {
-            // No retornar la contraseña por seguridad
-            usuario.setPassword(null);
-            return ResponseEntity.ok(usuario);
-        } else {
-            return ResponseEntity.status(401).body("Credenciales incorrectas");
-        }
+public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
+    String email = loginData.get("email");
+    String password = loginData.get("password");
+
+    logger.info("Intento de inicio de sesión para el usuario: {}", email);
+
+    Usuario usuario = usuarioService.iniciarSesionConDatos(email, password);
+
+    if (usuario != null) {
+        usuario.setPassword(null); // Seguridad
+        logger.info("Inicio de sesión exitoso para el usuario: {}", email);
+        return ResponseEntity.ok(usuario);
+    } else {
+        logger.warn("Inicio de sesión fallido para el usuario: {}", email);
+        return ResponseEntity.status(401).body("Credenciales incorrectas");
     }
+}
+
 
     // Cambiar contraseña
     @PutMapping("/{id}/password")
