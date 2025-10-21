@@ -109,11 +109,13 @@ https://www.youtube.com/watch?v=rAnn6vtLm90
 
 **Diagrama de Procesos (BPMN)**  
 
-![diagrama-de-procesos-a-implementar](docs/diagrama%20de%20procesos%20a%20implementar.png)  
+<img width="626" height="422" alt="image" src="https://github.com/user-attachments/assets/990934bc-7f34-42aa-a5ef-571acc75eb92" />
+
 
 **Diagrama Lógico de la Base de Datos**  
 
-![diagrama-logico](docs/diagrama%20logico.png)  
+<img width="587" height="514" alt="image" src="https://github.com/user-attachments/assets/14abd7d6-4b51-4bb1-97bd-c0d488e7080f" />
+
 
 ---
 
