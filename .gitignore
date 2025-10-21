@@ -1,0 +1,160 @@
+# ========================================
+# FRONTEND (React/Node.js)
+# ========================================
+
+# Dependencies
+Botica-FrontEnd/node_modules/
+Botica-FrontEnd/npm-debug.log*
+Botica-FrontEnd/yarn-debug.log*
+Botica-FrontEnd/yarn-error.log*
+
+# Production builds
+Botica-FrontEnd/build/
+Botica-FrontEnd/dist/
+
+# Environment variables
+Botica-FrontEnd/.env
+Botica-FrontEnd/.env.local
+Botica-FrontEnd/.env.development.local
+Botica-FrontEnd/.env.test.local
+Botica-FrontEnd/.env.production.local
+
+# IDE files
+Botica-FrontEnd/.vscode/
+Botica-FrontEnd/.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ========================================
+# BACKEND (Spring Boot/Java)
+# ========================================
+
+# Compiled class files
+botica-backend/target/
+botica-backend/*.jar
+botica-backend/*.war
+botica-backend/*.nar
+botica-backend/*.ear
+botica-backend/*.zip
+botica-backend/*.tar.gz
+botica-backend/*.rar
+
+# Maven
+botica-backend/.mvn/
+botica-backend/mvnw
+botica-backend/mvnw.cmd
+
+# IDE files
+botica-backend/.idea/
+botica-backend/.vscode/
+botica-backend/*.iws
+botica-backend/*.iml
+botica-backend/*.ipr
+botica-backend/.settings/
+botica-backend/.project
+botica-backend/.classpath
+
+# Spring Boot
+botica-backend/HELP.md
+
+# Logs
+botica-backend/logs/
+botica-backend/*.log
+
+# H2 Database files (if used)
+botica-backend/*.db
+
+# ========================================
+# GENERAL
+# ========================================
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Configuration files with sensitive data
+application-prod.properties
+application-dev.properties
+
+# Database files
+*.sqlite
+*.db
+
+# Log files
+*.log
+logs/
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Test results
+test-results/
+junit.xml
+
+# Documentation builds
+docs/_build/
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
