@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { initialProducts } from '../models/CatalogoModel';
 
 const parsePrice = (priceStr) => {
@@ -7,11 +7,85 @@ const parsePrice = (priceStr) => {
   return isNaN(n) ? 0 : n;
 };
 
+// Función para determinar la presentación basada en el nombre del producto
+const determinePresentation = (productName) => {
+  const name = productName.toLowerCase();
+  if (name.includes('jarabe') || name.includes('syrup')) return 'Jarabe';
+  if (name.includes('cápsula') || name.includes('capsule')) return 'Cápsulas';
+  return 'Tableta'; // Por defecto
+};
+
 export default function useCatalogoController() {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceMax, setPriceMax] = useState(100); // soles
   const [presentations, setPresentations] = useState(new Set()); // 'Tableta', 'Jarabe', 'Cápsulas'
   const [sortOption, setSortOption] = useState('nuevo'); // 'nuevo' | 'desc' | 'asc' | 'rating'
+  const [products, setProducts] = useState(initialProducts);
+  const [loading, setLoading] = useState(false);
+
+  // Función para cargar productos desde la API
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/productos');
+      if (response.ok) {
+        const apiProducts = await response.json();
+        
+        // Convertir productos de la API al formato del catálogo
+        const formattedProducts = apiProducts.map(product => ({
+          id: product.idProducto,
+          name: product.nombre,
+          price: `S/.${parseFloat(product.precio).toFixed(2)}`,
+          src: product.imagen || `${process.env.PUBLIC_URL}/assets/paracetamol-generico.jpg`,
+          presentation: determinePresentation(product.nombre), // Determinar presentación basada en el nombre
+          description: product.descripcion || 'Sin descripción disponible'
+        }));
+        
+        // Combinar productos de la API con productos iniciales
+        const allProducts = [...formattedProducts, ...initialProducts];
+        
+        // Eliminar duplicados basados en el ID
+        const uniqueProducts = allProducts.filter((product, index, self) => 
+          index === self.findIndex(p => p.id === product.id)
+        );
+        
+        setProducts(uniqueProducts);
+      }
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      // En caso de error, mantener productos iniciales
+      setProducts(initialProducts);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Cargar productos al montar el componente
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // Escuchar eventos de actualización de productos
+  useEffect(() => {
+    const handleProductUpdate = () => {
+      loadProducts();
+    };
+
+    window.addEventListener('productUpdated', handleProductUpdate);
+    
+    return () => {
+      window.removeEventListener('productUpdated', handleProductUpdate);
+    };
+  }, [loadProducts]);
+
+  // Polling para actualizar productos cada 2 minutos (como respaldo)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadProducts();
+    }, 120000); // 2 minutos
+
+    return () => clearInterval(interval);
+  }, [loadProducts]);
 
   const togglePresentation = useCallback((name) => {
     setPresentations(prev => {
@@ -27,8 +101,6 @@ export default function useCatalogoController() {
     setPresentations(new Set());
     setSortOption('nuevo');
   }, []);
-
-  const products = initialProducts;
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
@@ -63,6 +135,7 @@ export default function useCatalogoController() {
   return {
     // datos
     products: filteredProducts,
+    loading,
     // filtros y controladores
     searchTerm,
     setSearchTerm,
@@ -73,5 +146,7 @@ export default function useCatalogoController() {
     sortOption,
     setSortOption,
     clearFilters,
+    // función para refrescar manualmente
+    refreshProducts: loadProducts,
   };
 }

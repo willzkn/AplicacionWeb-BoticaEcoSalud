@@ -19,7 +19,12 @@ public class CategoriaService {
 
     @Transactional
     public Categoria crearCategoria(Categoria c) {
-        c.setActivo(Boolean.TRUE);
+        if (c.getActivo() == null) {
+            c.setActivo(Boolean.TRUE);
+        }
+        if (c.getFechaCreacion() == null) {
+            c.setFechaCreacion(java.time.LocalDate.now());
+        }
         return categoriaRepository.save(c);
     }
 
