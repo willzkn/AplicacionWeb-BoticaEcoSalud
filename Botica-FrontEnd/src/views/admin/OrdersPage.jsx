@@ -162,7 +162,7 @@ Método de pago: ${order.metodoPago?.nombre || 'N/A'}
   };
 
   const deleteOrder = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este pedido?')) return;
+    if (!window.confirm('¿Estás seguro de eliminar este pedido?')) return;
     
     setLoading(true);
     try {

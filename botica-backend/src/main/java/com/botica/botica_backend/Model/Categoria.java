@@ -14,11 +14,27 @@ import java.time.LocalDate;
 public class Categoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_categoria")
     private Long idCategoria;
 
     @Column(nullable = false)
     private String nombre;
+    
     private String descripcion;
-    private Boolean activo;
+    
+    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean activo = true;
+    
+    @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
+    
+    @PrePersist
+    protected void onCreate() {
+        if (fechaCreacion == null) {
+            fechaCreacion = LocalDate.now();
+        }
+        if (activo == null) {
+            activo = true;
+        }
+    }
 }

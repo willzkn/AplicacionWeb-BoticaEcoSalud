@@ -94,6 +94,7 @@ const ProductFilters = ({
     function CatalogoView() {
   const {
     products,
+    loading,
     searchTerm,
     setSearchTerm,
     priceMax,
@@ -103,6 +104,7 @@ const ProductFilters = ({
     sortOption,
     setSortOption,
     clearFilters,
+    refreshProducts,
   } = useCatalogoController();
 
       return (
@@ -145,17 +147,30 @@ const ProductFilters = ({
                 >
                   Puntuación
                 </span>
+                <button 
+                  className="filter-pill refresh-btn" 
+                  onClick={refreshProducts}
+                  disabled={loading}
+                  title="Actualizar productos"
+                >
+                  {loading ? '🔄' : '↻'} Actualizar
+                </button>
               </div>
               
               <div className="products-grid">
+                {loading && (
+                  <div className="loading-message">
+                    <p>Cargando productos...</p>
+                  </div>
+                )}
                 {/* Mapeo de productos filtrados */}
-                {products && products.length > 0 ? (
+                {!loading && products && products.length > 0 ? (
                   products.map(product => (
                     <ProductItem key={product.id} product={product} />
                   ))
-                ) : (
+                ) : !loading ? (
                   <p>No hay productos disponibles</p>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

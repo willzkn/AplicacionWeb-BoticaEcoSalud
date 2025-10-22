@@ -32,152 +32,6 @@ export default function UsersPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
-
-  return (
-    <AdminLayout>
-      <div>
-        <h2 className="login-title" style={{ marginBottom: 24 }}>Usuarios</h2>
-
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={() => openModal()}>Nuevo usuario</button>
-          <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={load} disabled={loading}>{loading ? 'Actualizando...' : 'Refrescar'}</button>
-        </div>
-
-        {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
-
-        <div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Email</th>
-                <th>Nombres</th>
-                <th>Apellidos</th>
-                <th>Rol</th>
-                <th>Activo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', opacity: 0.7 }}>Sin datos</td>
-                </tr>
-              )}
-              {users.map((u) => (
-                <tr key={u.idUsuario ?? u.id ?? u.email}>
-                  <td>{u.idUsuario ?? '-'}</td>
-                  <td>{u.email ?? '-'}</td>
-                  <td>{u.nombres ?? '-'}</td>
-                  <td>{u.apellidos ?? '-'}</td>
-                  <td>{u.rol ?? '-'}</td>
-                  <td>{String(u.activo ?? true)}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0 }} onClick={() => openModal(u)}>Editar</button>
-                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0, background: u.activo ? 'rgba(220, 53, 69, 0.9)' : 'rgba(40, 167, 69, 0.9)' }} onClick={() => toggleActive(u.idUsuario, u.activo)}>
-                        {u.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0, background: 'rgba(108, 117, 125, 0.9)' }} onClick={() => deleteUser(u.idUsuario)}>Eliminar</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Modal para crear/editar usuario */}
-        {showModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', width: '500px', maxHeight: '80vh', overflow: 'auto' }}>
-              <h3>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Nombres:</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.nombres}
-                    onChange={(e) => setFormData({...formData, nombres: e.target.value})}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Apellidos:</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.apellidos}
-                    onChange={(e) => setFormData({...formData, apellidos: e.target.value})}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Email:</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Teléfono:</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-                  />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Dirección:</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.direccion}
-                    onChange={(e) => setFormData({...formData, direccion: e.target.value})}
-                  />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>Rol:</label>
-                  <select
-                    className="form-input"
-                    value={formData.rol}
-                    onChange={(e) => setFormData({...formData, rol: e.target.value})}
-                    required
-                  >
-                    <option value="cliente">Cliente</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={formData.activo}
-                      onChange={(e) => setFormData({...formData, activo: e.target.checked})}
-                    />
-                    Activo
-                  </label>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={closeModal} style={{ padding: '8px 16px' }}>Cancelar</button>
-                  <button type="submit" className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0 }}>
-                    {editingUser ? 'Actualizar' : 'Crear'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    </AdminLayout>
-  );
-
   const openModal = (user = null) => {
     setEditingUser(user);
     if (user) {
@@ -260,7 +114,7 @@ export default function UsersPage() {
   };
 
   const deleteUser = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+    if (!window.confirm('¿Estás seguro de eliminar este usuario?')) return;
     
     setLoading(true);
     try {
@@ -278,4 +132,146 @@ export default function UsersPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <AdminLayout>
+      <div>
+        <h2 className="login-title" style={{ marginBottom: 24 }}>Usuarios</h2>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={() => openModal()}>Nuevo usuario</button>
+          <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={load} disabled={loading}>{loading ? 'Actualizando...' : 'Refrescar'}</button>
+        </div>
+
+        {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+        <div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Nombres</th>
+                <th>Apellidos</th>
+                <th>Rol</th>
+                <th>Activo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', opacity: 0.7 }}>Sin datos</td>
+                </tr>
+              )}
+              {users.map((u) => (
+                <tr key={u.idUsuario ?? u.id ?? u.email}>
+                  <td>{u.idUsuario ?? '-'}</td>
+                  <td>{u.email ?? '-'}</td>
+                  <td>{u.nombres ?? '-'}</td>
+                  <td>{u.apellidos ?? '-'}</td>
+                  <td>{u.rol ?? '-'}</td>
+                  <td>{String(u.activo ?? true)}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0 }} onClick={() => openModal(u)}>Editar</button>
+                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0, background: u.activo ? 'rgba(220, 53, 69, 0.9)' : 'rgba(40, 167, 69, 0.9)' }} onClick={() => toggleActive(u.idUsuario, u.activo)}>
+                        {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button className="login-button" style={{ width: 'auto', padding: '8px 16px', margin: 0, background: 'rgba(108, 117, 125, 0.9)' }} onClick={() => deleteUser(u.idUsuario)}>Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Modal para crear/editar usuario */}
+        {showModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={handleSubmit}>
+                  <div className="modal-form-group">
+                    <label>Nombres:</label>
+                    <input
+                      type="text"
+                      value={formData.nombres}
+                      onChange={(e) => setFormData({...formData, nombres: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label>Apellidos:</label>
+                    <input
+                      type="text"
+                      value={formData.apellidos}
+                      onChange={(e) => setFormData({...formData, apellidos: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label>Email:</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label>Teléfono:</label>
+                    <input
+                      type="tel"
+                      value={formData.telefono}
+                      onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label>Dirección:</label>
+                    <input
+                      type="text"
+                      value={formData.direccion}
+                      onChange={(e) => setFormData({...formData, direccion: e.target.value})}
+                    />
+                  </div>
+                  <div className="modal-form-group">
+                    <label>Rol:</label>
+                    <select
+                      value={formData.rol}
+                      onChange={(e) => setFormData({...formData, rol: e.target.value})}
+                      required
+                    >
+                      <option value="cliente">Cliente</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                  </div>
+                  <div className="modal-checkbox-group">
+                    <input
+                      type="checkbox"
+                      checked={formData.activo}
+                      onChange={(e) => setFormData({...formData, activo: e.target.checked})}
+                    />
+                    <label>Activo</label>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="modal-btn modal-btn-cancel" onClick={closeModal}>Cancelar</button>
+                    <button type="submit" className="modal-btn modal-btn-primary">
+                      {editingUser ? 'Actualizar' : 'Crear'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
 }

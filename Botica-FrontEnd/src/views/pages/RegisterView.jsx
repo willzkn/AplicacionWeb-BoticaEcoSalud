@@ -83,12 +83,26 @@ export default function RegisterView() {
     try {
       // No enviar confirmPassword al backend
       const { confirmPassword, ...dataToSend } = formData;
-      const res = await axios.post("http://localhost:8080/api/usuarios/register", dataToSend);
+      
+      console.log("Enviando datos:", dataToSend);
+      console.log("URL:", "http://localhost:8080/api/usuarios/register");
+      
+      const res = await axios.post("http://localhost:8080/api/usuarios/register", dataToSend, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log("Respuesta del servidor:", res.data);
       alert("✅ Usuario registrado correctamente! Ahora puedes iniciar sesión.");
       // Redirigir al login
       navigate('/login');
     } catch (error) {
-      alert(error.response?.data || "Error al registrar usuario");
+      console.error("Error completo:", error);
+      console.error("Respuesta del error:", error.response);
+      
+      const errorMessage = error.response?.data || error.message || "Error al registrar usuario";
+      alert(`❌ Error: ${errorMessage}`);
     }
   };
 
