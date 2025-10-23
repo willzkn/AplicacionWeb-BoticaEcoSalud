@@ -17,6 +17,7 @@ export default function AdminLayout({ children }) {
               <li><Link to="/admin/categorias" className="link">Categorías</Link></li>
               <li><Link to="/admin/productos" className="link">Productos</Link></li>
               <li><Link to="/admin/pedidos" className="link">Pedidos</Link></li>
+              <li><Link to="/admin/reportes" className="link">📊 Reportes</Link></li>
             </ul>
           </nav>
         </aside>

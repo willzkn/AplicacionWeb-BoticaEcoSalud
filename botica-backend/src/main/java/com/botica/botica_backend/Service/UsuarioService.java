@@ -5,6 +5,7 @@ import com.botica.botica_backend.Model.PasswordResetToken;
 import com.botica.botica_backend.Repository.UsuarioRepository;
 import com.botica.botica_backend.Repository.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,21 +23,31 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final PasswordResetTokenRepository tokenRepository;
+    
+    @Autowired
+    private ValidationServiceGuava validationService;
 
     // Read
     public List<Usuario> getUsuarios() {
         return usuarioRepository.findAll();
     }
 
-    // Create - VERSIÓN CORREGIDA CON HASHEO DE CONTRASEÑA
+    // Create - VERSIÓN CORREGIDA CON HASHEO DE CONTRASEÑA Y VALIDACIONES MEJORADAS
     @Transactional
     public Usuario registrarUsuario(Usuario usuario) {
-        // Validación de email
+        // Validaciones usando ValidationService
+        validationService.validateEmail(usuario.getEmail());
+        validationService.validateName(usuario.getNombres(), "Nombres");
+        validationService.validateName(usuario.getApellidos(), "Apellidos");
+        validationService.validatePassword(usuario.getPassword());
+        validationService.validatePhone(usuario.getTelefono());
+        
+        // Validación de email único
         if (usuarioRepository.existsByEmailIgnoreCase(usuario.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
 
-        // Validación de teléfono
+        // Validación de teléfono único
         if (usuario.getTelefono() != null && !usuario.getTelefono().trim().isEmpty()) {
             if (usuarioRepository.existsByTelefono(usuario.getTelefono())) {
                 throw new IllegalArgumentException("El teléfono ya está registrado");
@@ -219,6 +230,12 @@ public class UsuarioService {
 
     @Transactional
     public Optional<Usuario> actualizar(Long id, Usuario usuario) {
+        validationService.validateId(id, "usuario");
+        validationService.validateEmail(usuario.getEmail());
+        validationService.validateName(usuario.getNombres(), "Nombres");
+        validationService.validateName(usuario.getApellidos(), "Apellidos");
+        validationService.validatePhone(usuario.getTelefono());
+        
         return usuarioRepository.findById(id)
                 .map(existente -> {
                     existente.setNombres(usuario.getNombres());
@@ -234,6 +251,8 @@ public class UsuarioService {
 
     @Transactional
     public boolean eliminar(Long id) {
+        validationService.validateId(id, "usuario");
+        
         if (usuarioRepository.existsById(id)) {
             usuarioRepository.deleteById(id);
             return true;
