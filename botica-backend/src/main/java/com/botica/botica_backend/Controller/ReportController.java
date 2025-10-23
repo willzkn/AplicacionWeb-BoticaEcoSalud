@@ -1,7 +1,7 @@
 package com.botica.botica_backend.Controller;
 
-import com.botica.botica_backend.Service.ReportServiceApachePoi;
-import com.botica.botica_backend.Service.ImportServiceApachePoi;
+import com.botica.botica_backend.service.ReportServiceApachePoi;
+import com.botica.botica_backend.service.ImportServiceApachePoi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,6 +26,14 @@ public class ReportController {
 
     @Autowired
     private ImportServiceApachePoi importService;
+
+    /**
+     * Endpoint de prueba para verificar que el controlador funciona
+     */
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("ReportController funcionando correctamente");
+    }
 
     /**
      * Genera y descarga reporte de inventario en Excel

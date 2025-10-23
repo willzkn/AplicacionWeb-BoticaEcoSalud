@@ -1,4 +1,4 @@
-package com.botica.botica_backend.Service;
+package com.botica.botica_backend.service;
 
 import com.botica.botica_backend.Model.Producto;
 import com.botica.botica_backend.Model.Usuario;
