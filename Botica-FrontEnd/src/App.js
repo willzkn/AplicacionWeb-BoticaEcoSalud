@@ -1,4 +1,5 @@
  import './App.css';
+ import './styles/admin.css';
  import { BrowserRouter, Routes, Route } from 'react-router-dom';
  import { HelmetProvider } from 'react-helmet-async';
  import LoginView from './views/pages/LoginView';
@@ -16,7 +17,9 @@
  import CategoriesPage from './views/admin/CategoriesPage';
  import UsersPage from './views/admin/UsersPage';
  import ProductsPage from './views/admin/ProductsPage';
+ import ProvidersPage from './views/admin/ProvidersPage';
  import OrdersPage from './views/admin/OrdersPage';
+
 
 function App() {
   return (
@@ -53,11 +56,17 @@ function App() {
                 <ProductsPage />
               </RequireAdmin>
             } />
+            <Route path="/admin/proveedores" element={
+              <RequireAdmin>
+                <ProvidersPage />
+              </RequireAdmin>
+            } />
             <Route path="/admin/pedidos" element={
               <RequireAdmin>
                 <OrdersPage />
               </RequireAdmin>
             } />
+
           </Routes>
           </BrowserRouter>
         </CartProvider>

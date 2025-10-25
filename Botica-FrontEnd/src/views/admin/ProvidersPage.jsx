@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
-import ProductEditModal from '../partials/ProductEditModal';
+import ProviderEditModal from '../partials/ProviderEditModal';
 
-export default function ProductsPage() {
+export default function ProvidersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [products, setProducts] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProvider, setEditingProvider] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:8080/api/productos/all');
-      if (!res.ok) throw new Error('No se pudo cargar productos');
+      const res = await fetch('http://localhost:8080/api/proveedores/all');
+      if (!res.ok) throw new Error('No se pudo cargar proveedores');
       const data = await res.json();
-      setProducts(Array.isArray(data) ? data : []);
+      setProviders(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(e.message || 'Error al cargar productos');
+      setError(e.message || 'Error al cargar proveedores');
     } finally {
       setLoading(false);
     }
@@ -28,112 +28,75 @@ export default function ProductsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleNewProduct = () => {
-    setEditingProduct(null);
+  const handleNewProvider = () => {
+    setEditingProvider(null);
     setShowModal(true);
   };
 
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
+  const handleEditProvider = (provider) => {
+    setEditingProvider(provider);
     setShowModal(true);
   };
 
-  const handleDeleteProduct = async (product) => {
-    if (!window.confirm(`¿Estás seguro de ELIMINAR PERMANENTEMENTE "${product.nombre}"?\n\nEsta acción no se puede deshacer. Si solo quieres desactivarlo, usa el botón de estado.`)) {
+  const handleDeleteProvider = async (provider) => {
+    if (!window.confirm(`¿Estás seguro de ELIMINAR PERMANENTEMENTE "${provider.nombreComercial}"?\n\nEsta acción no se puede deshacer. Si tiene productos asociados, no se podrá eliminar.`)) {
       return;
     }
 
     try {
-      console.log('🗑️ Eliminando producto:', { id: product.idProducto, nombre: product.nombre });
-      
-      const url = `http://localhost:8080/api/productos/${product.idProducto}`;
-      console.log('📤 Enviando DELETE request:', url);
-
-      const res = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
+      const res = await fetch(`http://localhost:8080/api/proveedores/${provider.idProveedor}`, {
+        method: 'DELETE'
       });
-
-      console.log('📥 DELETE Response status:', res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('❌ DELETE Error response:', errorText);
-        throw new Error(errorText || 'Error al eliminar producto');
+        throw new Error(errorText || 'Error al eliminar proveedor');
       }
 
-      const responseText = await res.text();
-      console.log('✅ DELETE Success response:', responseText);
-
-      setSuccess('Producto eliminado permanentemente');
+      setSuccess('Proveedor eliminado permanentemente');
       setTimeout(() => setSuccess(''), 3000);
       load(); // Recargar lista
     } catch (e) {
-      console.error('💥 Error en handleDeleteProduct:', e);
-      setError(e.message || 'Error al eliminar producto');
+      setError(e.message || 'Error al eliminar proveedor');
       setTimeout(() => setError(''), 5000);
     }
   };
 
-  const handleToggleStatus = async (product) => {
+  const handleToggleStatus = async (provider) => {
     try {
-      const newStatus = !product.activo;
-      console.log('🔄 Cambiando estado de producto:', { 
-        id: product.idProducto, 
-        nombre: product.nombre, 
-        estadoActual: product.activo, 
-        nuevoEstado: newStatus 
-      });
-
-      const url = `http://localhost:8080/api/productos/${product.idProducto}/estado`;
-      const body = { activo: newStatus };
-      
-      console.log('📤 Enviando request:', { url, method: 'PUT', body });
-
-      const res = await fetch(url, {
+      const newStatus = !provider.estado;
+      const res = await fetch(`http://localhost:8080/api/proveedores/${provider.idProveedor}/estado`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ estado: newStatus })
       });
-
-      console.log('📥 Response status:', res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('❌ Error response:', errorText);
         throw new Error(errorText || 'Error al cambiar estado');
       }
 
-      const responseText = await res.text();
-      console.log('✅ Success response:', responseText);
-
-      setSuccess(`Producto ${newStatus ? 'activado' : 'desactivado'} correctamente`);
+      setSuccess(`Proveedor ${newStatus ? 'activado' : 'desactivado'} correctamente`);
       setTimeout(() => setSuccess(''), 3000);
       load(); // Recargar lista
     } catch (e) {
-      console.error('💥 Error en handleToggleStatus:', e);
       setError(e.message || 'Error al cambiar estado');
       setTimeout(() => setError(''), 5000);
     }
   };
 
-  const handleSaveProduct = (savedProduct) => {
-    setSuccess(editingProduct ? 'Producto actualizado correctamente' : 'Producto creado correctamente');
+  const handleSaveProvider = (savedProvider) => {
+    setSuccess(editingProvider ? 'Proveedor actualizado correctamente' : 'Proveedor creado correctamente');
     setTimeout(() => setSuccess(''), 3000);
     load(); // Recargar lista
   };
 
-
-
   const handleExportCSV = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/productos/export/csv');
+      const response = await fetch('http://localhost:8080/api/proveedores/export/csv');
       
       if (!response.ok) {
         throw new Error('Error al generar el archivo CSV');
@@ -143,13 +106,13 @@ export default function ProductsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `productos_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `proveedores_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      setSuccess('Archivo CSV generado y descargado correctamente');
+      setSuccess('Archivo CSV de proveedores generado y descargado correctamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError('Error al exportar CSV: ' + error.message);
@@ -159,16 +122,17 @@ export default function ProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.categoria?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProviders = providers.filter(provider =>
+    provider.nombreComercial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.ruc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.tipoProducto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    provider.personaContacto?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <AdminLayout>
       <div>
-        <h2 className="login-title" style={{ marginBottom: 24 }}>Gestión de Productos</h2>
+        <h2 className="login-title" style={{ marginBottom: 24 }}>Gestión de Proveedores</h2>
 
         {/* Mensajes de estado */}
         {error && (
@@ -187,9 +151,9 @@ export default function ProductsPage() {
           <button 
             className="login-button" 
             style={{ width: 'auto', padding: '12px 24px', margin: 0 }} 
-            onClick={handleNewProduct}
+            onClick={handleNewProvider}
           >
-            + Nuevo Producto
+            + Nuevo Proveedor
           </button>
           
           <button 
@@ -205,13 +169,14 @@ export default function ProductsPage() {
             className="login-button" 
             style={{ width: 'auto', padding: '12px 24px', margin: 0, backgroundColor: '#17a2b8', color: '#fff' }} 
             onClick={handleExportCSV}
+            disabled={loading}
           >
             📄 Exportar CSV
           </button>
 
           <input
             type="text"
-            placeholder="Buscar productos..."
+            placeholder="Buscar proveedores..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -226,88 +191,103 @@ export default function ProductsPage() {
         {/* Estadísticas rápidas */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
           <div className="stat-card">
-            <div className="stat-number">{products.length}</div>
-            <div className="stat-label">Total Productos</div>
+            <div className="stat-number">{providers.length}</div>
+            <div className="stat-label">Total Proveedores</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">{products.filter(p => p.activo).length}</div>
+            <div className="stat-number">{providers.filter(p => p.estado).length}</div>
             <div className="stat-label">Activos</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">{products.filter(p => p.stock < 10).length}</div>
-            <div className="stat-label">Stock Bajo</div>
+            <div className="stat-number">{providers.filter(p => !p.estado).length}</div>
+            <div className="stat-label">Inactivos</div>
           </div>
         </div>
 
-        {/* Tabla de productos */}
+        {/* Tabla de proveedores */}
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Stock</th>
-                <th>Categoría</th>
+                <th>Nombre Comercial</th>
+                <th>RUC</th>
+                <th>Contacto</th>
+                <th>Tipo Producto</th>
                 <th>Estado</th>
+                <th>Fecha Registro</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.length === 0 && (
+              {filteredProviders.length === 0 && (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
-                    {searchTerm ? 'No se encontraron productos' : 'Sin productos registrados'}
+                    {searchTerm ? 'No se encontraron proveedores' : 'Sin proveedores registrados'}
                   </td>
                 </tr>
               )}
-              {filteredProducts.map((p) => (
-                <tr key={p.idProducto} className={!p.activo ? 'row-inactive' : ''}>
-                  <td>{p.idProducto}</td>
-                  <td>{p.codigo || '-'}</td>
+              {filteredProviders.map((p) => (
+                <tr key={p.idProveedor} className={!p.estado ? 'row-inactive' : ''}>
+                  <td>{p.idProveedor}</td>
                   <td>
                     <div>
-                      <strong>{p.nombre}</strong>
-                      {p.descripcion && (
+                      <strong>{p.nombreComercial}</strong>
+                      {p.correo && (
                         <div style={{ fontSize: '0.85em', color: '#666', marginTop: '2px' }}>
-                          {p.descripcion.length > 50 ? p.descripcion.substring(0, 50) + '...' : p.descripcion}
+                          {p.correo}
                         </div>
                       )}
                     </div>
                   </td>
-                  <td>S/. {p.precio?.toFixed(2) || '0.00'}</td>
                   <td>
-                    <span className={p.stock < 10 ? 'stock-low' : 'stock-normal'}>
-                      {p.stock || 0}
+                    <div>
+                      {p.ruc}
+                      {p.telefono && (
+                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '2px' }}>
+                          📞 {p.telefono}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td>{p.personaContacto || '-'}</td>
+                  <td>
+                    <div style={{ maxWidth: '150px' }}>
+                      {p.tipoProducto ? (
+                        p.tipoProducto.length > 30 ? 
+                        p.tipoProducto.substring(0, 30) + '...' : 
+                        p.tipoProducto
+                      ) : '-'}
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${p.estado ? 'status-active' : 'status-inactive'}`}>
+                      {p.estado ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td>{p.categoria?.nombre || '-'}</td>
                   <td>
-                    <span className={`status-badge ${p.activo ? 'status-active' : 'status-inactive'}`}>
-                      {p.activo ? 'Activo' : 'Inactivo'}
-                    </span>
+                    {p.fechaRegistro ? new Date(p.fechaRegistro).toLocaleDateString() : '-'}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <button 
                         className="btn-action btn-edit" 
-                        onClick={() => handleEditProduct(p)}
-                        title="Editar producto"
+                        onClick={() => handleEditProvider(p)}
+                        title="Editar proveedor"
                       >
                         ✏️
                       </button>
                       <button 
-                        className={`btn-action ${p.activo ? 'btn-deactivate' : 'btn-activate'}`}
+                        className={`btn-action ${p.estado ? 'btn-deactivate' : 'btn-activate'}`}
                         onClick={() => handleToggleStatus(p)}
-                        title={p.activo ? 'Desactivar' : 'Activar'}
+                        title={p.estado ? 'Desactivar' : 'Activar'}
                       >
-                        {p.activo ? '🚫' : '✅'}
+                        {p.estado ? '🚫' : '✅'}
                       </button>
                       <button 
                         className="btn-action btn-delete" 
-                        onClick={() => handleDeleteProduct(p)}
-                        title="Eliminar producto"
+                        onClick={() => handleDeleteProvider(p)}
+                        title="Eliminar proveedor"
                       >
                         🗑️
                       </button>
@@ -320,11 +300,11 @@ export default function ProductsPage() {
         </div>
 
         {/* Modal de edición */}
-        <ProductEditModal
+        <ProviderEditModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          product={editingProduct}
-          onSave={handleSaveProduct}
+          provider={editingProvider}
+          onSave={handleSaveProvider}
         />
       </div>
     </AdminLayout>

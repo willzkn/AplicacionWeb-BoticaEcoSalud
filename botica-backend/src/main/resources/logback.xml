@@ -1,14 +1,112 @@
-<logger name="com.botica.botica_backend.Controller.UsuarioController" level="INFO" additivity="false">
-  <appender-ref ref="LOGIN_FILE" />
-</logger>
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    
+    <!-- Propiedades -->
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+    <property name="LOG_PATH" value="logs"/>
+    
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
 
-<appender name="LOGIN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-  <file>logs/login-events.log</file>
-  <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-    <fileNamePattern>logs/login-events.%d{yyyy-MM-dd}.log</fileNamePattern>
-    <maxHistory>30</maxHistory>
-  </rollingPolicy>
-  <encoder>
-    <pattern>%d{HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
-  </encoder>
-</appender>
+    <!-- File Appender General -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/botica-backend.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/botica-backend.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for Login Events -->
+    <appender name="LOGIN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/login-events.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/login-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for Errors -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/errors.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/errors.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for Business Operations -->
+    <appender name="BUSINESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/business-operations.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/business-operations.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loggers específicos -->
+    
+    <!-- Logger for Usuario Controller -->
+    <logger name="com.botica.botica_backend.Controller.UsuarioController" level="INFO" additivity="false">
+        <appender-ref ref="LOGIN_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger for Controllers (operaciones de negocio) -->
+    <logger name="com.botica.botica_backend.Controller" level="INFO" additivity="false">
+        <appender-ref ref="BUSINESS_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger for Services -->
+    <logger name="com.botica.botica_backend.Service" level="DEBUG" additivity="false">
+        <appender-ref ref="BUSINESS_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger for Utilities -->
+    <logger name="com.botica.botica_backend.Util" level="INFO" additivity="false">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger para Spring Security -->
+    <logger name="org.springframework.security" level="WARN" additivity="false">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Logger para Hibernate/JPA -->
+    <logger name="org.hibernate" level="WARN" additivity="false">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR_FILE" />
+    </root>
+
+</configuration>

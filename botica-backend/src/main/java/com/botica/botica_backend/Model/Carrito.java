@@ -30,4 +30,23 @@ public class Carrito {
     @ManyToOne
     @JoinColumn(name = "idProducto", nullable = false)
     private Producto producto;
+
+    // Manual getters and setters as fallback
+    public Long getIdCarrito() { return idCarrito; }
+    public void setIdCarrito(Long idCarrito) { this.idCarrito = idCarrito; }
+    
+    public Integer getCantidad() { return cantidad; }
+    public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+    
+    public Double getPrecioUnitario() { return precioUnitario; }
+    public void setPrecioUnitario(Double precioUnitario) { this.precioUnitario = precioUnitario; }
+    
+    public LocalDate getFechaAgregado() { return fechaAgregado; }
+    public void setFechaAgregado(LocalDate fechaAgregado) { this.fechaAgregado = fechaAgregado; }
+    
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    
+    public Producto getProducto() { return producto; }
+    public void setProducto(Producto producto) { this.producto = producto; }
 }

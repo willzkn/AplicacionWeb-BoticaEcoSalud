@@ -21,4 +21,20 @@ public class Categoria {
     private String descripcion;
     private Boolean activo;
     private LocalDate fechaCreacion;
+
+    // Manual getters and setters as fallback
+    public Long getIdCategoria() { return idCategoria; }
+    public void setIdCategoria(Long idCategoria) { this.idCategoria = idCategoria; }
+    
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
+    
+    public LocalDate getFechaCreacion() { return fechaCreacion; }
+    public void setFechaCreacion(LocalDate fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 }

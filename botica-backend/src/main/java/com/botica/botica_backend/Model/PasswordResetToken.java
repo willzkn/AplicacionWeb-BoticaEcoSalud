@@ -29,4 +29,20 @@ public class PasswordResetToken {
     
     @Column(nullable = false)
     private Boolean usado = false;
+
+    // Manual getters and setters as fallback
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
+    
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    
+    public LocalDateTime getFechaExpiracion() { return fechaExpiracion; }
+    public void setFechaExpiracion(LocalDateTime fechaExpiracion) { this.fechaExpiracion = fechaExpiracion; }
+    
+    public Boolean getUsado() { return usado; }
+    public void setUsado(Boolean usado) { this.usado = usado; }
 }

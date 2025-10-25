@@ -4,6 +4,7 @@ import AdminLayout from '../layouts/AdminLayout';
 export default function OrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [orders, setOrders] = useState([]);
 
   const load = async () => {
@@ -23,6 +24,35 @@ export default function OrdersPage() {
 
   useEffect(() => { load(); }, []);
 
+  const handleExportCSV = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8080/api/pedidos/export/csv');
+      
+      if (!response.ok) {
+        throw new Error('Error al generar el archivo CSV');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pedidos_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setSuccess('Archivo CSV de pedidos generado y descargado correctamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setError('Error al exportar CSV: ' + error.message);
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div>
@@ -31,9 +61,11 @@ export default function OrdersPage() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={() => alert('Abrir modal: Crear pedido')}>Nuevo pedido</button>
           <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0 }} onClick={load} disabled={loading}>{loading ? 'Actualizando...' : 'Refrescar'}</button>
+          <button className="login-button" style={{ width: 'auto', padding: '12px 24px', margin: 0, backgroundColor: '#17a2b8', color: '#fff' }} onClick={handleExportCSV} disabled={loading}>📄 Exportar CSV</button>
         </div>
 
         {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+        {success && <div className="alert-success" style={{ marginBottom: 16 }}>{success}</div>}
 
         <div>
           <table className="table">

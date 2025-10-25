@@ -12,6 +12,27 @@ import java.util.List;
 
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
+    
+    // =====================================================
+    // CONSULTAS BÁSICAS CRUD
+    // =====================================================
+    
+    // Buscar productos activos
+    List<Producto> findByActivoTrue();
+    
+    // Buscar por nombre (case insensitive)
+    List<Producto> findByNombreContainingIgnoreCase(String nombre);
+    
+    // Buscar por categoría
+    List<Producto> findByCategoriaIdCategoria(Long categoriaId);
+    
+    // Productos con stock bajo
+    List<Producto> findByStockLessThanAndActivoTrue(Integer limite);
+    
+    // =====================================================
+    // CONSULTAS PERSONALIZADAS
+    // =====================================================
+    
     // actualizarPrecio(id, nuevoPrecio)
     @Modifying
     @Transactional
@@ -39,6 +60,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     );
 
     // obtenerAlternativas(id_producto) : Productos[]
-    @Query("SELECT p2 FROM Producto p1, Producto p2 WHERE p1.idProducto = :idProducto AND p1.categoria.idCategoria = p2.categoria.idCategoria AND p1.idProducto <> p2.idProducto")
+    @Query("SELECT p2 FROM Producto p1, Producto p2 WHERE p1.idProducto = :idProducto AND p1.categoria.idCategoria = p2.categoria.idCategoria AND p1.idProducto <> p2.idProducto AND p2.activo = true")
     List<Producto> obtenerAlternativas(@Param("idProducto") Long idProducto);
 }

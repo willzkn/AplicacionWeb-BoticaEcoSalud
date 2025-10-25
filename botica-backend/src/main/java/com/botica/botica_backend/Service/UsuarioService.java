@@ -211,4 +211,74 @@ public class UsuarioService {
         resetToken.setUsado(true);
         tokenRepository.save(resetToken);
     }
+
+    // =====================================================
+    // MÉTODOS ADICIONALES PARA ADMIN
+    // =====================================================
+
+    @Transactional
+    public Usuario actualizarUsuario(Usuario usuario) {
+        // Verificar que el usuario existe
+        Optional<Usuario> existente = usuarioRepository.findById(usuario.getIdUsuario());
+        if (existente.isEmpty()) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+
+        // Validaciones
+        if (usuario.getNombres() == null || usuario.getNombres().trim().isEmpty()) {
+            throw new IllegalArgumentException("Los nombres son obligatorios");
+        }
+        if (usuario.getApellidos() == null || usuario.getApellidos().trim().isEmpty()) {
+            throw new IllegalArgumentException("Los apellidos son obligatorios");
+        }
+
+        Usuario original = existente.get();
+        
+        // Mantener email original (no se puede cambiar)
+        usuario.setEmail(original.getEmail());
+        
+        // Mantener fecha de registro original
+        usuario.setFechaRegistro(original.getFechaRegistro());
+        
+        // Si no se proporciona nueva contraseña, mantener la actual
+        if (usuario.getPassword() == null || usuario.getPassword().trim().isEmpty()) {
+            usuario.setPassword(original.getPassword());
+        } else {
+            // Hashear nueva contraseña
+            usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        }
+
+        return usuarioRepository.save(usuario);
+    }
+
+    @Transactional
+    public void cambiarEstado(Long idUsuario, Boolean activo) {
+        Optional<Usuario> usuario = usuarioRepository.findById(idUsuario);
+        if (usuario.isEmpty()) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+        
+        Usuario u = usuario.get();
+        u.setActivo(activo);
+        usuarioRepository.save(u);
+    }
+
+    @Transactional
+    public void eliminarUsuario(Long idUsuario) {
+        Optional<Usuario> usuario = usuarioRepository.findById(idUsuario);
+        if (usuario.isEmpty()) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+        
+        // Verificar si el usuario tiene pedidos o está en carritos
+        try {
+            usuarioRepository.deleteById(idUsuario);
+        } catch (Exception e) {
+            // Si hay error por restricciones de FK, hacer soft delete
+            Usuario u = usuario.get();
+            u.setActivo(false);
+            usuarioRepository.save(u);
+            throw new IllegalArgumentException("No se puede eliminar el usuario porque tiene pedidos o datos asociados. Se ha desactivado en su lugar.");
+        }
+    }
 }
