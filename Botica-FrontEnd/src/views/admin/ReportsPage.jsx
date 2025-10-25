@@ -13,17 +13,19 @@ export default function ReportsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar el reporte');
+        const errorText = await response.text();
+        console.error('Error del servidor:', errorText);
+        throw new Error(`Error al generar el reporte: ${response.status} - ${errorText}`);
       }
 
       // Obtener el blob del archivo
       const blob = await response.blob();
-      
+
       // Crear URL temporal para descarga
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       // Determinar nombre del archivo
       let filename = 'reporte.xlsx';
       switch (reportType) {
@@ -37,15 +39,15 @@ export default function ReportsPage() {
           filename = `ventas_${new Date().toISOString().slice(0, 10)}.xlsx`;
           break;
       }
-      
+
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      
+
       // Limpiar
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       alert('Reporte descargado exitosamente');
     } catch (error) {
       alert('Error al descargar el reporte: ' + error.message);
@@ -74,7 +76,7 @@ export default function ReportsPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       alert('Plantilla descargada exitosamente');
     } catch (error) {
       alert('Error al descargar la plantilla: ' + error.message);
@@ -109,7 +111,7 @@ export default function ReportsPage() {
 
       if (response.ok) {
         // Notificar que se actualizaron productos
-        window.dispatchEvent(new CustomEvent('productUpdated', { 
+        window.dispatchEvent(new CustomEvent('productUpdated', {
           detail: { action: 'imported' }
         }));
       }
@@ -137,28 +139,28 @@ export default function ReportsPage() {
           <p style={{ marginBottom: 20, color: '#666' }}>
             Descarga reportes en formato Excel con la información actualizada del sistema.
           </p>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <button 
-              className="login-button" 
+            <button
+              className="login-button"
               style={{ width: '100%', padding: '12px 16px', margin: 0, background: '#28a745' }}
               onClick={() => downloadReport('inventory')}
               disabled={loading}
             >
               📦 Reporte de Inventario
             </button>
-            
-            <button 
-              className="login-button" 
+
+            <button
+              className="login-button"
               style={{ width: '100%', padding: '12px 16px', margin: 0, background: '#17a2b8' }}
               onClick={() => downloadReport('users')}
               disabled={loading}
             >
               👥 Reporte de Usuarios
             </button>
-            
-            <button 
-              className="login-button" 
+
+            <button
+              className="login-button"
               style={{ width: '100%', padding: '12px 16px', margin: 0, background: '#dc3545' }}
               onClick={() => downloadReport('sales')}
               disabled={loading}
@@ -174,28 +176,28 @@ export default function ReportsPage() {
           <p style={{ marginBottom: 20, color: '#666' }}>
             Importa productos masivamente desde un archivo Excel. Descarga la plantilla para ver el formato requerido.
           </p>
-          
+
           <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-            <button 
-              className="login-button" 
+            <button
+              className="login-button"
               style={{ width: 'auto', padding: '12px 16px', margin: 0, background: '#6f42c1' }}
               onClick={downloadTemplate}
               disabled={loading}
             >
               📄 Descargar Plantilla
             </button>
-            
-            <label className="login-button" style={{ 
-              width: 'auto', 
-              padding: '12px 16px', 
-              margin: 0, 
+
+            <label className="login-button" style={{
+              width: 'auto',
+              padding: '12px 16px',
+              margin: 0,
               background: '#fd7e14',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.6 : 1
             }}>
               📤 Seleccionar Archivo Excel
-              <input 
-                type="file" 
+              <input
+                type="file"
                 accept=".xlsx"
                 onChange={handleFileImport}
                 disabled={loading}
@@ -206,9 +208,9 @@ export default function ReportsPage() {
 
           {/* Resultado de la importación */}
           {importResult && (
-            <div style={{ 
-              padding: 16, 
-              borderRadius: 8, 
+            <div style={{
+              padding: 16,
+              borderRadius: 8,
               backgroundColor: importResult.error ? '#f8d7da' : '#d4edda',
               border: `1px solid ${importResult.error ? '#f5c6cb' : '#c3e6cb'}`,
               color: importResult.error ? '#721c24' : '#155724'
@@ -216,7 +218,7 @@ export default function ReportsPage() {
               <h4 style={{ margin: '0 0 12px 0' }}>
                 {importResult.error ? '❌ Error en la Importación' : '✅ Resultado de la Importación'}
               </h4>
-              
+
               {importResult.error ? (
                 <p style={{ margin: 0 }}>{importResult.error}</p>
               ) : (
@@ -227,7 +229,7 @@ export default function ReportsPage() {
                   <p style={{ margin: '0 0 12px 0' }}>
                     <strong>Errores encontrados:</strong> {importResult.errorCount}
                   </p>
-                  
+
                   {importResult.successMessages && importResult.successMessages.length > 0 && (
                     <details style={{ marginBottom: 8 }}>
                       <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
@@ -240,7 +242,7 @@ export default function ReportsPage() {
                       </ul>
                     </details>
                   )}
-                  
+
                   {importResult.errorMessages && importResult.errorMessages.length > 0 && (
                     <details>
                       <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#dc3545' }}>
@@ -260,23 +262,23 @@ export default function ReportsPage() {
         </div>
 
         {loading && (
-          <div style={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            backgroundColor: 'rgba(0,0,0,0.5)', 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             zIndex: 10000
           }}>
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: 24, 
-              borderRadius: 8, 
-              textAlign: 'center' 
+            <div style={{
+              backgroundColor: 'white',
+              padding: 24,
+              borderRadius: 8,
+              textAlign: 'center'
             }}>
               <p style={{ margin: 0, fontSize: 16 }}>Procesando...</p>
             </div>

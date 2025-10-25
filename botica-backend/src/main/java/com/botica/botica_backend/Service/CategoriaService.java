@@ -36,6 +36,14 @@ public class CategoriaService {
         });
     }
 
+    @Transactional
+    public void activarCategoria(Long id) {
+        categoriaRepository.findById(id).ifPresent(c -> {
+            c.setActivo(Boolean.TRUE);
+            categoriaRepository.save(c);
+        });
+    }
+
     public List<Categoria> listarTodas() {
         return categoriaRepository.findAll();
     }

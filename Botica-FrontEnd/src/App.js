@@ -17,6 +17,7 @@ import CategoriesPage from './views/admin/CategoriesPage';
 import UsersPage from './views/admin/UsersPage';
 import ProductsPage from './views/admin/ProductsPage';
 import OrdersPage from './views/admin/OrdersPage';
+import ReportsPage from './views/admin/ReportsPage';
 
 function App() {
   return (
@@ -56,6 +57,11 @@ function App() {
               <Route path="/admin/pedidos" element={
                 <RequireAdmin>
                   <OrdersPage />
+                </RequireAdmin>
+              } />
+              <Route path="/admin/reportes" element={
+                <RequireAdmin>
+                  <ReportsPage />
                 </RequireAdmin>
               } />
             </Routes>
