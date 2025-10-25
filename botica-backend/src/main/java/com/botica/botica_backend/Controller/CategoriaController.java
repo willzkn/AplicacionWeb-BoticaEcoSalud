@@ -11,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categorias")
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class CategoriaController {
 
@@ -31,6 +32,12 @@ public class CategoriaController {
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<Void> desactivar(@PathVariable("id") Long idCategoria) {
         categoriaService.desactivarCategoria(idCategoria);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<Void> activar(@PathVariable("id") Long idCategoria) {
+        categoriaService.activarCategoria(idCategoria);
         return ResponseEntity.noContent().build();
     }
 

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS metodos_pago (
 -- Tabla de productos
 CREATE TABLE IF NOT EXISTS productos (
     id_producto BIGINT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(50),
     nombre VARCHAR(255) NOT NULL,
     descripcion TEXT,
     precio DECIMAL(10,2) NOT NULL,
@@ -60,6 +61,7 @@ CREATE TABLE IF NOT EXISTS productos (
     fecha_creacion DATE,
     id_categoria BIGINT,
     id_proveedor BIGINT,
+    INDEX idx_codigo (codigo),
     INDEX idx_nombre (nombre),
     INDEX idx_precio (precio),
     INDEX idx_categoria (id_categoria),

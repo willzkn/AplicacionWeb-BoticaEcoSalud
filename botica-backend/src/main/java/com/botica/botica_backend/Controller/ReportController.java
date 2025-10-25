@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class ReportController {
 
     @Autowired
@@ -33,7 +34,9 @@ public class ReportController {
     @GetMapping("/inventory")
     public ResponseEntity<byte[]> downloadInventoryReport() {
         try {
+            System.out.println("Generando reporte de inventario...");
             byte[] excelData = reportService.generateInventoryReport();
+            System.out.println("Reporte generado exitosamente. Tamaño: " + excelData.length + " bytes");
             
             String filename = "inventario_" + 
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
@@ -45,7 +48,9 @@ public class ReportController {
             
             return new ResponseEntity<>(excelData, headers, HttpStatus.OK);
             
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("Error al generar reporte de inventario: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -56,7 +61,9 @@ public class ReportController {
     @GetMapping("/users")
     public ResponseEntity<byte[]> downloadUsersReport() {
         try {
+            System.out.println("Generando reporte de usuarios...");
             byte[] excelData = reportService.generateUsersReport();
+            System.out.println("Reporte generado exitosamente. Tamaño: " + excelData.length + " bytes");
             
             String filename = "usuarios_" + 
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
@@ -68,7 +75,9 @@ public class ReportController {
             
             return new ResponseEntity<>(excelData, headers, HttpStatus.OK);
             
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("Error al generar reporte de usuarios: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -79,7 +88,9 @@ public class ReportController {
     @GetMapping("/sales")
     public ResponseEntity<byte[]> downloadSalesReport() {
         try {
+            System.out.println("Generando reporte de ventas...");
             byte[] excelData = reportService.generateSalesReport();
+            System.out.println("Reporte generado exitosamente. Tamaño: " + excelData.length + " bytes");
             
             String filename = "ventas_" + 
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
@@ -91,7 +102,9 @@ public class ReportController {
             
             return new ResponseEntity<>(excelData, headers, HttpStatus.OK);
             
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("Error al generar reporte de ventas: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -110,7 +123,8 @@ public class ReportController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            if (!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) {
+            String filename = file.getOriginalFilename();
+            if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
                 response.put("error", "Solo se permiten archivos Excel (.xlsx)");
                 return ResponseEntity.badRequest().body(response);
             }
@@ -144,8 +158,9 @@ public class ReportController {
     @GetMapping("/template/products")
     public ResponseEntity<byte[]> downloadProductTemplate() {
         try {
-            // Crear plantilla básica
-            byte[] templateData = createProductTemplate();
+            System.out.println("Generando plantilla de productos...");
+            byte[] templateData = reportService.generateProductTemplate();
+            System.out.println("Plantilla generada exitosamente. Tamaño: " + templateData.length + " bytes");
             
             String filename = "plantilla_productos.xlsx";
             
@@ -156,18 +171,10 @@ public class ReportController {
             
             return new ResponseEntity<>(templateData, headers, HttpStatus.OK);
             
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("Error al generar plantilla de productos: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
-
-    private byte[] createProductTemplate() throws IOException {
-        // Implementación simple de plantilla
-        // En una implementación más completa, se podría usar Apache POI para crear una plantilla más elaborada
-        String template = "Nombre,Descripción,Precio,Stock,Categoría,Imagen URL\n" +
-                         "Paracetamol 500mg,Analgésico y antipirético,5.50,100,Medicamentos,https://ejemplo.com/imagen.jpg\n" +
-                         "Ibuprofeno 400mg,Antiinflamatorio,8.75,50,Medicamentos,\n";
-        
-        return template.getBytes();
     }
 }

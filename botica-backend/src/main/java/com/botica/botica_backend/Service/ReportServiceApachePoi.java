@@ -213,4 +213,66 @@ public class ReportServiceApachePoi {
             return outputStream.toByteArray();
         }
     }
+
+    /**
+     * Genera plantilla de Excel para importar productos
+     */
+    public byte[] generateProductTemplate() throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Plantilla Productos");
+            
+            // Crear estilo para el header
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            
+            // Crear estilo para ejemplos
+            CellStyle exampleStyle = workbook.createCellStyle();
+            Font exampleFont = workbook.createFont();
+            exampleFont.setItalic(true);
+            exampleFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            exampleStyle.setFont(exampleFont);
+            
+            // Crear header
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Nombre", "Descripción", "Precio", "Stock", "Categoría", "Imagen URL"};
+            
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // Agregar filas de ejemplo
+            Row example1 = sheet.createRow(1);
+            example1.createCell(0).setCellValue("Paracetamol 500mg");
+            example1.createCell(1).setCellValue("Analgésico y antipirético");
+            example1.createCell(2).setCellValue(5.50);
+            example1.createCell(3).setCellValue(100);
+            example1.createCell(4).setCellValue("Medicamentos");
+            example1.createCell(5).setCellValue("https://ejemplo.com/paracetamol.jpg");
+            
+            Row example2 = sheet.createRow(2);
+            example2.createCell(0).setCellValue("Ibuprofeno 400mg");
+            example2.createCell(1).setCellValue("Antiinflamatorio no esteroideo");
+            example2.createCell(2).setCellValue(8.75);
+            example2.createCell(3).setCellValue(50);
+            example2.createCell(4).setCellValue("Medicamentos");
+            example2.createCell(5).setCellValue("");
+            
+            // Auto-ajustar columnas
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // Convertir a bytes
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
 }
