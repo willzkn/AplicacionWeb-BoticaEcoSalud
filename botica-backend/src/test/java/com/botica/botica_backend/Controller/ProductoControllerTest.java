@@ -13,7 +13,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -23,7 +22,6 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -64,7 +62,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe obtener todos los productos correctamente")
-    @WithMockUser
     void testObtenerTodosLosProductos() throws Exception {
         // Given
         List<Producto> productos = Arrays.asList(
@@ -85,7 +82,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe obtener producto por ID correctamente")
-    @WithMockUser
     void testObtenerProductoPorId() throws Exception {
         // Given
         Long idProducto = 1L;
@@ -103,7 +99,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe retornar 404 cuando producto no existe")
-    @WithMockUser
     void testObtenerProductoPorIdNoExiste() throws Exception {
         // Given
         Long idProductoInexistente = 999L;
@@ -116,7 +111,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe crear producto correctamente")
-    @WithMockUser(roles = "ADMIN")
     void testCrearProducto() throws Exception {
         // Given
         Producto nuevoProducto = crearProducto(null, "Aspirina 100mg", 12.00, 75);
@@ -126,7 +120,6 @@ class ProductoControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/productos/create")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(nuevoProducto)))
                 .andExpect(status().isOk())
@@ -138,7 +131,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe actualizar producto correctamente")
-    @WithMockUser(roles = "ADMIN")
     void testActualizarProducto() throws Exception {
         // Given
         Long idProducto = 1L;
@@ -149,7 +141,6 @@ class ProductoControllerTest {
 
         // When & Then
         mockMvc.perform(put("/api/productos/{id}", idProducto)
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productoActualizado)))
                 .andExpect(status().isOk())
@@ -161,7 +152,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe retornar 400 al actualizar producto inexistente")
-    @WithMockUser(roles = "ADMIN")
     void testActualizarProductoInexistente() throws Exception {
         // Given
         Long idProductoInexistente = 999L;
@@ -172,7 +162,6 @@ class ProductoControllerTest {
 
         // When & Then
         mockMvc.perform(put("/api/productos/{id}", idProductoInexistente)
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productoActualizado)))
                 .andExpect(status().isBadRequest());
@@ -180,21 +169,18 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe eliminar producto correctamente")
-    @WithMockUser(roles = "ADMIN")
     void testEliminarProducto() throws Exception {
         // Given
         Long idProducto = 1L;
         // No need to mock void method - it will succeed by default
 
         // When & Then
-        mockMvc.perform(delete("/api/productos/{id}", idProducto)
-                .with(csrf()))
+        mockMvc.perform(delete("/api/productos/{id}", idProducto))
                 .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Debe retornar 400 al eliminar producto inexistente")
-    @WithMockUser(roles = "ADMIN")
     void testEliminarProductoInexistente() throws Exception {
         // Given
         Long idProductoInexistente = 999L;
@@ -202,14 +188,12 @@ class ProductoControllerTest {
             .when(productoService).eliminarProducto(idProductoInexistente);
 
         // When & Then
-        mockMvc.perform(delete("/api/productos/{id}", idProductoInexistente)
-                .with(csrf()))
+        mockMvc.perform(delete("/api/productos/{id}", idProductoInexistente))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Debe buscar productos por nombre correctamente")
-    @WithMockUser
     void testBuscarProductosPorNombre() throws Exception {
         // Given
         String nombreBusqueda = "Paracetamol";
@@ -229,7 +213,6 @@ class ProductoControllerTest {
 
     @Test
     @DisplayName("Debe validar datos de entrada incorrectos")
-    @WithMockUser(roles = "ADMIN")
     void testValidacionDatosIncorrectos() throws Exception {
         // Given - Producto con datos inválidos
         Producto productoInvalido = new Producto();
@@ -242,7 +225,6 @@ class ProductoControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/productos/create")
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productoInvalido)))
                 .andExpect(status().isBadRequest());
