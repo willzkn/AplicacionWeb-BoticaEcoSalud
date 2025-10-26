@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { initialProducts } from '../models/CatalogoModel';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import ProductoService from '../services/ProductoService';
 
 const parsePrice = (priceStr) => {
   if (!priceStr) return 0;
@@ -12,6 +12,9 @@ export default function useCatalogoController() {
   const [priceMax, setPriceMax] = useState(100); // soles
   const [presentations, setPresentations] = useState(new Set()); // 'Tableta', 'Jarabe', 'Cápsulas'
   const [sortOption, setSortOption] = useState('nuevo'); // 'nuevo' | 'desc' | 'asc' | 'rating'
+  const [products, setProducts] = useState([]); // Solo productos del backend
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const togglePresentation = useCallback((name) => {
     setPresentations(prev => {
@@ -28,7 +31,63 @@ export default function useCatalogoController() {
     setSortOption('nuevo');
   }, []);
 
-  const products = initialProducts;
+  // Cargar productos del backend al montar el componente
+  useEffect(() => {
+    const cargarProductos = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const productosBackend = await ProductoService.obtenerProductosPublicos();
+        console.log('Productos del backend:', productosBackend);
+        
+        // Transformar productos del backend al formato del frontend
+        const productosTransformados = productosBackend.map(producto => {
+          try {
+            return ProductoService.transformarProducto(producto);
+          } catch (error) {
+            console.error('Error al transformar producto:', producto, error);
+            // Retornar un producto por defecto en caso de error
+            return {
+              id: producto.idProducto || Math.random(),
+              idProducto: producto.idProducto || Math.random(),
+              name: producto.nombre || 'Producto sin nombre',
+              nombre: producto.nombre || 'Producto sin nombre',
+              price: `S/.${(producto.precio || 0).toFixed(2)}`,
+              precio: producto.precio || 0,
+              src: `${process.env.PUBLIC_URL}/assets/paracetamol-generico.jpg`,
+              imagen: null,
+              presentation: 'General',
+              presentacion: 'General',
+              description: producto.descripcion || '',
+              descripcion: producto.descripcion || '',
+              stock: producto.stock || 0,
+              activo: producto.activo !== false,
+              codigo: producto.codigo || '',
+              categoria: producto.categoria || null,
+              proveedor: producto.proveedor || null
+            };
+          }
+        });
+        console.log('Productos transformados:', productosTransformados);
+        
+        setProducts(productosTransformados);
+        
+        // Actualizar el rango máximo de precio basado en los productos reales
+        const precioMaximo = Math.max(...productosTransformados.map(p => p.precio));
+        setPriceMax(Math.ceil(precioMaximo));
+        
+      } catch (error) {
+        console.error('Error al cargar productos del backend:', error);
+        setError('Error al conectar con el servidor. No se pudieron cargar los productos.');
+        setProducts([]); // Lista vacía si hay error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarProductos();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
@@ -63,6 +122,8 @@ export default function useCatalogoController() {
   return {
     // datos
     products: filteredProducts,
+    loading,
+    error,
     // filtros y controladores
     searchTerm,
     setSearchTerm,

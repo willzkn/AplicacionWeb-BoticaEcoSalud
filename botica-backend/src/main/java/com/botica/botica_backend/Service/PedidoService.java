@@ -1,125 +1,202 @@
 package com.botica.botica_backend.Service;
 
-import com.botica.botica_backend.Model.Pedido;
-import com.botica.botica_backend.Model.Usuario;
-import com.botica.botica_backend.Model.Metodo_pago;
-import com.botica.botica_backend.Model.Producto;
-import com.botica.botica_backend.DTO.PedidoCreateDTO;
-import com.botica.botica_backend.DTO.ItemDTO;
-import com.botica.botica_backend.Repository.PedidoRepository;
-import com.botica.botica_backend.Repository.UsuarioRepository;
-import com.botica.botica_backend.Repository.MetodoPagoRepository;
-import com.botica.botica_backend.Repository.ProductoRepository;
-import com.botica.botica_backend.Repository.DetallePedidoRepository;
+import com.botica.botica_backend.Model.*;
+import com.botica.botica_backend.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PedidoService {
+
     private final PedidoRepository pedidoRepository;
+    private final DetallePedidoRepository detallePedidoRepository;
+    private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
     private final MetodoPagoRepository metodoPagoRepository;
-    private final ProductoRepository productoRepository;
-    private final DetallePedidoRepository detallePedidoRepository;
-    private final EmailService emailService;
 
-    public List<Pedido> obtenerHistorialUsuario(Long idUsuario) {
-        return pedidoRepository.obtenerHistorialUsuario(idUsuario);
-    }
-
+    /**
+     * Crear un nuevo pedido con sus detalles
+     */
     @Transactional
-    public void actualizarEstado(Long idPedido, String nuevoEstado) {
-        pedidoRepository.actualizarEstado(idPedido, nuevoEstado);
-        
-        // Enviar email de cambio de estado
-        try {
-            Pedido pedido = pedidoRepository.findById(idPedido).orElse(null);
-            if (pedido != null && pedido.getUsuario() != null) {
-                emailService.enviarCambioEstadoPedido(
-                    pedido.getUsuario().getEmail(),
-                    pedido.getUsuario().getNombres(),
-                    idPedido,
-                    nuevoEstado
-                );
-            }
-        } catch (Exception ignored) { }
-    }
+    public Pedido crearPedido(PedidoRequest pedidoRequest) {
+        // Validar usuario
+        Usuario usuario = usuarioRepository.findById(pedidoRequest.getIdUsuario())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-    @Transactional
-    public Pedido crearPedido(Usuario usuario, Metodo_pago metodo, Double total) {
-        Pedido p = new Pedido();
-        p.setUsuario(usuario);
-        p.setMetodoPago(metodo);
-        p.setTotal(total);
-        p.setEstado("CREADO");
-        p.setFechaPedido(LocalDate.now());
-        return pedidoRepository.save(p);
-    }
+        // Validar método de pago
+        Metodo_pago metodoPago = metodoPagoRepository.findById(pedidoRequest.getIdMetodoPago())
+                .orElseThrow(() -> new RuntimeException("Método de pago no encontrado"));
 
-    // Crear pedido a partir de DTO con validación de stock y cálculo de total
-    @Transactional
-    public Pedido crearPedidoDesdeDTO(PedidoCreateDTO dto) {
-        // 1. Cargar entidades principales
-        Usuario usuario = usuarioRepository.findById(dto.getIdUsuario())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        Metodo_pago metodo = metodoPagoRepository.findById(dto.getIdMetodoPago())
-                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
-
-        // 2. Validar items y calcular total
-        double total = 0.0;
-        for (ItemDTO item : dto.getItems()) {
-            Long idProd = item.getIdProducto();
-            Integer cant = item.getCantidad();
-            if (cant == null || cant <= 0) {
-                throw new IllegalArgumentException("Cantidad inválida para producto " + idProd);
-            }
-            boolean hayStock = productoRepository.validarStock(idProd, cant);
-            if (!hayStock) {
-                throw new IllegalStateException("Stock insuficiente para producto " + idProd);
-            }
-            Producto prod = productoRepository.findById(idProd)
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + idProd));
-            total += (prod.getPrecio() != null ? prod.getPrecio() : 0.0) * cant;
-        }
-
-        // 3. Crear pedido
+        // Crear el pedido
         Pedido pedido = new Pedido();
         pedido.setUsuario(usuario);
-        pedido.setMetodoPago(metodo);
-        pedido.setTotal(total);
-        pedido.setEstado("CREADO");
+        pedido.setMetodoPago(metodoPago);
         pedido.setFechaPedido(LocalDate.now());
+        pedido.setEstado("PENDIENTE");
+        pedido.setTotal(0.0);
+
+        // Guardar el pedido primero para obtener el ID
         pedido = pedidoRepository.save(pedido);
 
-        // 4. Crear detalles e impactar stock
-        for (ItemDTO item : dto.getItems()) {
-            detallePedidoRepository.agregarDetalle(pedido.getIdPedido(), item.getIdProducto(), item.getCantidad());
-            // Si no usas triggers para stock, descomenta la siguiente línea para decrementar stock
-            productoRepository.actualizarStock(item.getIdProducto(), item.getCantidad(), "SALIDA");
+        // Procesar los detalles del pedido
+        double totalPedido = 0.0;
+        for (DetallePedidoRequest detalleRequest : pedidoRequest.getDetalles()) {
+            Producto producto = productoRepository.findById(detalleRequest.getIdProducto())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + detalleRequest.getIdProducto()));
+
+            // Verificar stock disponible
+            if (producto.getStock() < detalleRequest.getCantidad()) {
+                throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre());
+            }
+
+            // Crear detalle del pedido
+            Detalle_pedido detalle = new Detalle_pedido();
+            detalle.setPedido(pedido);
+            detalle.setProducto(producto);
+            detalle.setCantidad(detalleRequest.getCantidad());
+            detalle.setPrecioUnitario(producto.getPrecio());
+            detalle.setSubtotal(producto.getPrecio() * detalleRequest.getCantidad());
+
+            detallePedidoRepository.save(detalle);
+
+            // Actualizar stock del producto
+            producto.setStock(producto.getStock() - detalleRequest.getCantidad());
+            productoRepository.save(producto);
+
+            totalPedido += detalle.getSubtotal();
         }
 
-        // 5. Enviar email de confirmación de pedido
-        try {
-            emailService.enviarConfirmacionPedido(
-                usuario.getEmail(),
-                usuario.getNombres(),
-                pedido.getIdPedido(),
-                pedido.getTotal()
-            );
-        } catch (Exception ignored) { }
-
-        return pedido;
+        // Actualizar el total del pedido
+        pedido.setTotal(totalPedido);
+        return pedidoRepository.save(pedido);
     }
 
-    // Nuevo metodo para listar todos los pedidos
-    public List<Pedido> listarTodos() {
-        return pedidoRepository.findAll();
+    /**
+     * Obtener todos los pedidos
+     */
+    public List<Pedido> obtenerTodosLosPedidos() {
+        return pedidoRepository.findAllByOrderByFechaPedidoDesc();
+    }
+
+    /**
+     * Obtener pedidos por usuario
+     */
+    public List<Pedido> obtenerPedidosPorUsuario(Long idUsuario) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return pedidoRepository.findByUsuarioOrderByFechaPedidoDesc(usuario);
+    }
+
+    /**
+     * Obtener pedido por ID
+     */
+    public Optional<Pedido> obtenerPedidoPorId(Long id) {
+        return pedidoRepository.findById(id);
+    }
+
+    /**
+     * Obtener detalles de un pedido
+     */
+    public List<Detalle_pedido> obtenerDetallesPedido(Long idPedido) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+        return detallePedidoRepository.findByPedido(pedido);
+    }
+
+    /**
+     * Actualizar estado del pedido
+     */
+    @Transactional
+    public Pedido actualizarEstadoPedido(Long idPedido, String nuevoEstado) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+        
+        pedido.setEstado(nuevoEstado);
+        return pedidoRepository.save(pedido);
+    }
+
+    /**
+     * Obtener pedidos por estado
+     */
+    public List<Pedido> obtenerPedidosPorEstado(String estado) {
+        return pedidoRepository.findByEstadoOrderByFechaPedidoDesc(estado);
+    }
+
+    /**
+     * Obtener estadísticas de pedidos
+     */
+    public EstadisticasPedidos obtenerEstadisticas() {
+        EstadisticasPedidos stats = new EstadisticasPedidos();
+        stats.setTotalPedidos(pedidoRepository.count());
+        stats.setPedidosPendientes(pedidoRepository.countByEstado("PENDIENTE"));
+        stats.setPedidosCompletados(pedidoRepository.countByEstado("COMPLETADO"));
+        stats.setPedidosCancelados(pedidoRepository.countByEstado("CANCELADO"));
+        
+        // Ventas del día
+        Double ventasHoy = pedidoRepository.getTotalVentasPorFecha(LocalDate.now());
+        stats.setVentasHoy(ventasHoy != null ? ventasHoy : 0.0);
+        
+        return stats;
+    }
+
+    /**
+     * Clases auxiliares para requests y responses
+     */
+    public static class PedidoRequest {
+        private Long idUsuario;
+        private Long idMetodoPago;
+        private List<DetallePedidoRequest> detalles;
+
+        // Getters y setters
+        public Long getIdUsuario() { return idUsuario; }
+        public void setIdUsuario(Long idUsuario) { this.idUsuario = idUsuario; }
+        
+        public Long getIdMetodoPago() { return idMetodoPago; }
+        public void setIdMetodoPago(Long idMetodoPago) { this.idMetodoPago = idMetodoPago; }
+        
+        public List<DetallePedidoRequest> getDetalles() { return detalles; }
+        public void setDetalles(List<DetallePedidoRequest> detalles) { this.detalles = detalles; }
+    }
+
+    public static class DetallePedidoRequest {
+        private Long idProducto;
+        private Integer cantidad;
+
+        // Getters y setters
+        public Long getIdProducto() { return idProducto; }
+        public void setIdProducto(Long idProducto) { this.idProducto = idProducto; }
+        
+        public Integer getCantidad() { return cantidad; }
+        public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+    }
+
+    public static class EstadisticasPedidos {
+        private Long totalPedidos;
+        private Long pedidosPendientes;
+        private Long pedidosCompletados;
+        private Long pedidosCancelados;
+        private Double ventasHoy;
+
+        // Getters y setters
+        public Long getTotalPedidos() { return totalPedidos; }
+        public void setTotalPedidos(Long totalPedidos) { this.totalPedidos = totalPedidos; }
+        
+        public Long getPedidosPendientes() { return pedidosPendientes; }
+        public void setPedidosPendientes(Long pedidosPendientes) { this.pedidosPendientes = pedidosPendientes; }
+        
+        public Long getPedidosCompletados() { return pedidosCompletados; }
+        public void setPedidosCompletados(Long pedidosCompletados) { this.pedidosCompletados = pedidosCompletados; }
+        
+        public Long getPedidosCancelados() { return pedidosCancelados; }
+        public void setPedidosCancelados(Long pedidosCancelados) { this.pedidosCancelados = pedidosCancelados; }
+        
+        public Double getVentasHoy() { return ventasHoy; }
+        public void setVentasHoy(Double ventasHoy) { this.ventasHoy = ventasHoy; }
     }
 }
-
-

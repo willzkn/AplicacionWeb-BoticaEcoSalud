@@ -140,3 +140,80 @@ input[type="checkbox"]:hover {
   }
 }
 
+/* Estados de carga y error */
+.loading-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.loading-message p {
+  font-size: 1.2rem;
+  color: #6b7280;
+  text-align: center;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.error-message p {
+  font-size: 1.1rem;
+  color: #dc2626;
+  text-align: center;
+  padding: 2rem;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 2px solid #fecaca;
+  max-width: 500px;
+}
+
+/* Animación de carga */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-message p {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Mejoras para productos sin imagen */
+.grid__item img {
+  transition: opacity 0.3s ease;
+}
+
+.grid__item img[src*="paracetamol-generico"] {
+  opacity: 0.8;
+  border: 2px dashed #e5e7eb;
+}
+
+.grid__item:hover img[src*="paracetamol-generico"] {
+  opacity: 1;
+  border-color: #1e4099;
+}
+
+/* Responsive para mensajes */
+@media (max-width: 768px) {
+  .loading-message p,
+  .error-message p {
+    font-size: 1rem;
+    padding: 1.5rem;
+  }
+}

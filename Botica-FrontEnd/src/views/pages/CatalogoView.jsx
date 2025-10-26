@@ -94,6 +94,8 @@ const ProductFilters = ({
     function CatalogoView() {
   const {
     products,
+    loading,
+    error,
     searchTerm,
     setSearchTerm,
     priceMax,
@@ -148,12 +150,26 @@ const ProductFilters = ({
               </div>
               
               <div className="products-grid">
+                {/* Estado de carga */}
+                {loading && (
+                  <div className="loading-message">
+                    <p>Cargando productos...</p>
+                  </div>
+                )}
+
+                {/* Mensaje de error */}
+                {error && (
+                  <div className="error-message">
+                    <p>{error}</p>
+                  </div>
+                )}
+
                 {/* Mapeo de productos filtrados */}
-                {products && products.length > 0 ? (
+                {!loading && products && products.length > 0 ? (
                   products.map(product => (
                     <ProductItem key={product.id} product={product} />
                   ))
-                ) : (
+                ) : !loading && (
                   <p>No hay productos disponibles</p>
                 )}
               </div>

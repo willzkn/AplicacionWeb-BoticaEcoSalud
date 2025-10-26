@@ -9,6 +9,9 @@
  import Inicio from './views/pages/Inicio';
  import CatalogoView from './views/pages/CatalogoView';
  import ProductDetail from './views/pages/ProductDetail';
+ import AccessDenied from './views/pages/AccessDenied';
+ import CheckoutPage from './views/pages/CheckoutPage';
+ import OrderConfirmation from './views/pages/OrderConfirmation';
  import { CartProvider } from './controllers/CartContext'; 
  import { AuthProvider } from './controllers/AuthContext';
  import CarritoView from './views/pages/CarritoView'; 
@@ -28,6 +31,7 @@ function App() {
         <CartProvider>
           <BrowserRouter>
           <Routes>
+            {/* Rutas públicas */}
             <Route path="/" element={<Inicio />} />
             <Route path="/login" element={<LoginView />} />
             <Route path="/register" element={<RegisterView />} /> 
@@ -35,7 +39,12 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordView />} />
             <Route path="/catalogo" element={<CatalogoView />} />
             <Route path="/producto/:id" element={<ProductDetail />} />
-            <Route path="/carrito" element={<CarritoView />} /> 
+            <Route path="/carrito" element={<CarritoView />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/pedido-confirmado" element={<OrderConfirmation />} />
+            <Route path="/access-denied" element={<AccessDenied />} />
+            
+            {/* Rutas de administrador - Protegidas */}
             <Route path="/admin" element={
               <RequireAdmin>
                 <Dashboard />

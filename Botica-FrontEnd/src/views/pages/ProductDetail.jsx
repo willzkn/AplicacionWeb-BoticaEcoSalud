@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { initialProducts } from '../../models/CatalogoModel';
+import ProductoService from '../../services/ProductoService';
 import ProductCard from '../partials/ProductCard';
 import '../../styles/ProductDetail.css';
 import MainLayout from '../layouts/MainLayout';
@@ -13,25 +13,47 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const { addToCart } = useCart(); // Hook para agregar al carrito
 
   useEffect(() => {
-    // Find the current product
-    const currentProduct = initialProducts.find(p => p.id === parseInt(id));
-    setProduct(currentProduct || null);
+    const cargarProducto = async () => {
+      try {
+        setLoading(true);
+        
+        // Obtener producto del backend
+        const productoBackend = await ProductoService.obtenerProductoPorId(parseInt(id));
+        const productoTransformado = ProductoService.transformarProducto(productoBackend);
+        setProduct(productoTransformado);
 
-    // Find similar products (excluding the current one)
-    if (currentProduct) {
-      const similar = initialProducts
-        .filter(p => p.id !== currentProduct.id && p.presentation === currentProduct.presentation)
-        .slice(0, 3);
-      setSimilarProducts(similar);
-      setNotFound(false);
-    } else {
-      setSimilarProducts([]);
-      setNotFound(true);
-    }
+        // Obtener productos similares (misma categoría)
+        if (productoBackend.categoria) {
+          try {
+            const productosSimilares = await ProductoService.obtenerProductosPorCategoria(productoBackend.categoria.idCategoria);
+            const similares = productosSimilares
+              .filter(p => p.idProducto !== productoBackend.idProducto)
+              .slice(0, 3)
+              .map(ProductoService.transformarProducto);
+            setSimilarProducts(similares);
+          } catch (error) {
+            console.error('Error al cargar productos similares:', error);
+            setSimilarProducts([]);
+          }
+        }
+        
+        setNotFound(false);
+      } catch (error) {
+        console.error('Error al cargar producto:', error);
+        setNotFound(true);
+        setProduct(null);
+        setSimilarProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarProducto();
   }, [id]);
 
   const handleAddToCart = (product, quantity) => {
@@ -61,7 +83,7 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (loading) {
     return (
       <MainLayout>
         <div className="loading" aria-live="polite">Cargando producto...</div>

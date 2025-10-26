@@ -17,7 +17,8 @@ public class MetodoPagoService {
     }
 
     public Metodo_pago obtenerDetalle(Long id) {
-        return metodoPagoRepository.obtenerDetalle(id);
+        return metodoPagoRepository.obtenerDetalle(id)
+                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
     }
 
     public Metodo_pago crearMetodoPago(Metodo_pago metodoPago) {

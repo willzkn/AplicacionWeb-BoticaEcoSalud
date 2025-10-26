@@ -2,6 +2,7 @@ package com.botica.botica_backend.Controller;
 
 import com.botica.botica_backend.Model.Usuario;
 import com.botica.botica_backend.Service.UsuarioService;
+import com.botica.botica_backend.Security.RoleBasedAccessControl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @GetMapping("/all")
+    @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
     public ResponseEntity<List<Usuario>> getUsuarios() {
         return ResponseEntity.ok(usuarioService.getUsuarios());
     }

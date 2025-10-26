@@ -1,8 +1,9 @@
 package com.botica.botica_backend.Controller;
 
-import com.botica.botica_backend.DTO.PedidoCreateDTO;
 import com.botica.botica_backend.Model.Pedido;
+import com.botica.botica_backend.Model.Detalle_pedido;
 import com.botica.botica_backend.Service.PedidoService;
+import com.botica.botica_backend.Security.RoleBasedAccessControl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,46 +18,75 @@ public class PedidoController {
 
     private final PedidoService pedidoService;
 
-    // Crear pedido a partir de DTO (con validación de stock)
+    // Crear pedido (disponible para clientes autenticados)
     @PostMapping("/create")
-    public ResponseEntity<Pedido> crearPedido(@RequestBody PedidoCreateDTO dto) {
-        Pedido nuevo = pedidoService.crearPedidoDesdeDTO(dto);
-        return ResponseEntity.ok(nuevo);
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
+    public ResponseEntity<?> crearPedido(@RequestBody PedidoService.PedidoRequest pedidoRequest) {
+        try {
+            Pedido nuevoPedido = pedidoService.crearPedido(pedidoRequest);
+            return ResponseEntity.ok(nuevoPedido);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
-    // Actualizar estado de un pedido
+    // Actualizar estado de un pedido (solo admin)
     @PutMapping("/{id}/estado")
-    public ResponseEntity<Void> actualizarEstado(
+    @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
+    public ResponseEntity<?> actualizarEstado(
             @PathVariable Long id,
             @RequestBody Map<String, String> body
     ) {
-        String nuevoEstado = body.get("nuevoEstado");
-        pedidoService.actualizarEstado(id, nuevoEstado);
-        return ResponseEntity.noContent().build();
+        try {
+            String nuevoEstado = body.get("nuevoEstado");
+            Pedido pedidoActualizado = pedidoService.actualizarEstadoPedido(id, nuevoEstado);
+            return ResponseEntity.ok(pedidoActualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Obtener historial de pedidos de un usuario
     @GetMapping("/usuario/{idUsuario}")
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
     public ResponseEntity<List<Pedido>> historialUsuario(@PathVariable Long idUsuario) {
-        List<Pedido> historial = pedidoService.obtenerHistorialUsuario(idUsuario);
+        List<Pedido> historial = pedidoService.obtenerPedidosPorUsuario(idUsuario);
         return ResponseEntity.ok(historial);
     }
 
-    // Listar todos los pedidos
+    // Listar todos los pedidos (solo admin)
     @GetMapping("/all")
+    @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
     public ResponseEntity<List<Pedido>> listarTodos() {
-        return ResponseEntity.ok(pedidoService.listarTodos());
+        return ResponseEntity.ok(pedidoService.obtenerTodosLosPedidos());
+    }
+
+    // Obtener detalles de un pedido
+    @GetMapping("/{id}/detalles")
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
+    public ResponseEntity<List<Detalle_pedido>> obtenerDetalles(@PathVariable Long id) {
+        List<Detalle_pedido> detalles = pedidoService.obtenerDetallesPedido(id);
+        return ResponseEntity.ok(detalles);
+    }
+
+    // Obtener estadísticas de pedidos (solo admin)
+    @GetMapping("/estadisticas")
+    @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
+    public ResponseEntity<PedidoService.EstadisticasPedidos> obtenerEstadisticas() {
+        PedidoService.EstadisticasPedidos stats = pedidoService.obtenerEstadisticas();
+        return ResponseEntity.ok(stats);
     }
 
     // =====================================================
     // EXPORTACIÓN CSV
     // =====================================================
 
-    // Exportar pedidos a CSV
+    // Exportar pedidos a CSV (solo admin)
     @GetMapping("/export/csv")
+    @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
     public ResponseEntity<byte[]> exportarPedidosCSV() {
         try {
-            List<Pedido> pedidos = pedidoService.listarTodos();
+            List<Pedido> pedidos = pedidoService.obtenerTodosLosPedidos();
             
             StringBuilder csv = new StringBuilder();
             csv.append("ID,Usuario_Nombres,Usuario_Apellidos,Email_Usuario,Total,Estado,Metodo_Pago,Fecha_Pedido\n");

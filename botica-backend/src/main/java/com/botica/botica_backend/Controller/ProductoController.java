@@ -70,6 +70,12 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.listarActivos());
     }
 
+    // READ - Listar productos públicos (sin autenticación para el catálogo)
+    @GetMapping("/publicos")
+    public ResponseEntity<List<Producto>> listarProductosPublicos() {
+        return ResponseEntity.ok(productoService.listarActivos());
+    }
+
     // READ - Buscar productos por nombre
     @GetMapping("/buscar")
     public ResponseEntity<List<Producto>> buscarPorNombre(@RequestParam String nombre) {

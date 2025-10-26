@@ -1,9 +1,11 @@
 // src/views/pages/CarritoView.jsx
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout'; 
 import  CartItem  from '../partials/CartItem';
 import '../../styles/carrito.css'; 
+import '../../styles/CheckoutPage.css';
 import { useCart } from '../../controllers/CartContext';
 import { useAuth } from '../../controllers/AuthContext';
 
@@ -16,11 +18,19 @@ const parsePrice = (priceStr) => {
 
 function CarritoView() {
     // Obtener el contexto del carrito y autenticación
-    const { cart, updateCartQuantity, removeFromCart } = useCart();
-    const { user } = useAuth();
+    const { cart, updateCartQuantity, removeFromCart, clearCart, getTotalPrice } = useCart();
+    const { user, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     
     // Estado para controlar qué paso del acordeón está abierto
     const [activeStep, setActiveStep] = useState(1);
+    
+    // Estados para checkout
+    const [metodosPago, setMetodosPago] = useState([]);
+    const [selectedMetodoPago, setSelectedMetodoPago] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     
     // Estados para los datos del formulario
     const [shippingData, setShippingData] = useState({
@@ -45,13 +55,141 @@ function CarritoView() {
         cvv: ''
     }); 
 
+    // Debug: Mostrar información del usuario y carrito
+    useEffect(() => {
+        console.log('=== DEBUG CARRITO ===');
+        console.log('isAuthenticated():', isAuthenticated());
+        console.log('user:', user);
+        console.log('cart:', cart);
+        console.log('cart.length:', cart.length);
+        console.log('====================');
+    }, [user, cart, isAuthenticated]);
+
+    // Cargar métodos de pago al montar el componente
+    useEffect(() => {
+        if (isAuthenticated() && cart.length > 0) {
+            cargarMetodosPago();
+        }
+    }, [isAuthenticated, cart.length]);
+
+    const cargarMetodosPago = async () => {
+        try {
+            const response = await fetch('http://localhost:8080/api/metodos-pago/activos');
+            if (response.ok) {
+                const data = await response.json();
+                setMetodosPago(data);
+                if (data.length > 0) {
+                    setSelectedMetodoPago(data[0].idMetodoPago);
+                }
+            }
+        } catch (error) {
+            console.error('Error al cargar métodos de pago:', error);
+            setError('Error al cargar métodos de pago');
+        }
+    };
+
+    const procesarPedido = async () => {
+        console.log('Iniciando procesarPedido...');
+        console.log('selectedMetodoPago:', selectedMetodoPago);
+        console.log('user:', user);
+        console.log('cart:', cart);
+
+        if (!selectedMetodoPago) {
+            setError('Selecciona un método de pago');
+            return;
+        }
+
+        if (!isAuthenticated()) {
+            navigate('/login');
+            return;
+        }
+
+        if (!user || !user.idUsuario) {
+            setError('Error: Usuario no válido. Por favor, inicia sesión nuevamente.');
+            navigate('/login');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            // Preparar los detalles del pedido
+            const detalles = cart.map(item => ({
+                idProducto: item.idProducto || item.id,
+                cantidad: item.cantidad || item.quantity
+            }));
+
+            console.log('detalles:', detalles);
+
+            // Validar que todos los productos tengan ID y cantidad válidos
+            const detallesInvalidos = detalles.filter(d => !d.idProducto || !d.cantidad || d.cantidad <= 0);
+            if (detallesInvalidos.length > 0) {
+                console.error('Detalles inválidos:', detallesInvalidos);
+                setError('Error: Algunos productos del carrito no son válidos');
+                return;
+            }
+
+            const pedidoRequest = {
+                idUsuario: user.idUsuario,
+                idMetodoPago: parseInt(selectedMetodoPago),
+                detalles: detalles
+            };
+
+            console.log('pedidoRequest:', pedidoRequest);
+
+            const response = await fetch('http://localhost:8080/api/pedidos/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token || 'dummy-token'}`,
+                    'X-User-Role': user.rol || 'CLIENTE'
+                },
+                body: JSON.stringify(pedidoRequest)
+            });
+
+            console.log('response status:', response.status);
+
+            if (response.ok) {
+                const pedidoCreado = await response.json();
+                console.log('pedidoCreado:', pedidoCreado);
+                setSuccess('¡Pedido realizado exitosamente!');
+                clearCart();
+                
+                // Redirigir a la página de confirmación después de 2 segundos
+                setTimeout(() => {
+                    navigate('/pedido-confirmado', { 
+                        state: { pedido: pedidoCreado } 
+                    });
+                }, 2000);
+            } else {
+                const errorText = await response.text();
+                console.log('Error response:', errorText);
+                try {
+                    const errorData = JSON.parse(errorText);
+                    setError(errorData.error || 'Error al procesar el pedido');
+                } catch (e) {
+                    setError(`Error del servidor: ${response.status} - ${errorText}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error al procesar pedido:', error);
+            setError(`Error de conexión: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Calcular el subtotal cada vez que el carrito cambie
     const subtotal = useMemo(() => {
+        if (getTotalPrice) {
+            return getTotalPrice().toFixed(2);
+        }
         return cart.reduce((acc, item) => {
             const price = parsePrice(item.price);
             return acc + (price * item.quantity);
         }, 0).toFixed(2);
-    }, [cart]);
+    }, [cart, getTotalPrice]);
 
     return (
         <MainLayout backgroundImageUrl={`${process.env.PUBLIC_URL}/assets/mi-fondo.JPG`}> 
@@ -68,6 +206,7 @@ function CarritoView() {
                             <h2 id="products-in-cart" className="section-header">Productos de tu carrito</h2>
                             {cart.map(item => (
                                 <CartItem 
+                                    key={item.id || item.idProducto || item.name}
                                     item={item} 
                                     updateQuantity={updateCartQuantity} 
                                     removeItem={removeFromCart} 
@@ -211,71 +350,45 @@ function CarritoView() {
                                     </button>
                                     {activeStep === 3 && (
                                         <div className="accordion-content">
-                                            <select 
-                                                value={paymentData.metodo}
-                                                onChange={(e) => setPaymentData({...paymentData, metodo: e.target.value})}
-                                                className="form-input"
-                                            >
-                                                <option value="tarjeta">Tarjeta de crédito/débito</option>
-                                                <option value="yape">Yape</option>
-                                                <option value="plin">Plin</option>
-                                                <option value="efectivo">Efectivo</option>
-                                            </select>
-                                            
-                                            {paymentData.metodo === 'tarjeta' && (
-                                                <>
-                                                    <input 
-                                                        type="text"
-                                                        placeholder="Número de tarjeta"
-                                                        value={paymentData.numeroTarjeta}
-                                                        onChange={(e) => setPaymentData({...paymentData, numeroTarjeta: e.target.value})}
-                                                        className="form-input"
-                                                        maxLength="16"
-                                                    />
-                                                    <input 
-                                                        type="text"
-                                                        placeholder="Nombre del titular"
-                                                        value={paymentData.nombreTitular}
-                                                        onChange={(e) => setPaymentData({...paymentData, nombreTitular: e.target.value})}
-                                                        className="form-input"
-                                                    />
-                                                    <div style={{display: 'flex', gap: '10px'}}>
-                                                        <input 
-                                                            type="text"
-                                                            placeholder="MM/AA"
-                                                            value={paymentData.fechaExpiracion}
-                                                            onChange={(e) => setPaymentData({...paymentData, fechaExpiracion: e.target.value})}
-                                                            className="form-input"
-                                                            maxLength="5"
-                                                        />
-                                                        <input 
-                                                            type="text"
-                                                            placeholder="CVV"
-                                                            value={paymentData.cvv}
-                                                            onChange={(e) => setPaymentData({...paymentData, cvv: e.target.value})}
-                                                            className="form-input"
-                                                            maxLength="3"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-                                            
-                                            {(paymentData.metodo === 'yape' || paymentData.metodo === 'plin') && (
-                                                <div className="payment-info">
-                                                    <p>Realiza el pago escaneando el código QR</p>
-                                                    <div className="qr-placeholder">📱 QR Code</div>
+                                            {/* Mensajes de error/éxito */}
+                                            {error && (
+                                                <div className="message message-error" style={{marginBottom: '1rem'}}>
+                                                    {error}
                                                 </div>
                                             )}
-                                            
-                                            {paymentData.metodo === 'efectivo' && (
-                                                <div className="payment-info">
-                                                    <p>💵 Pago en efectivo al recibir el pedido</p>
+
+                                            {success && (
+                                                <div className="message message-success" style={{marginBottom: '1rem'}}>
+                                                    {success}
                                                 </div>
                                             )}
+
+                                            <div className="payment-methods">
+                                                {metodosPago.map((metodo) => (
+                                                    <label 
+                                                        key={metodo.idMetodoPago} 
+                                                        className={`payment-option ${selectedMetodoPago == metodo.idMetodoPago ? 'selected' : ''}`}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name="metodoPago"
+                                                            value={metodo.idMetodoPago}
+                                                            checked={selectedMetodoPago == metodo.idMetodoPago}
+                                                            onChange={(e) => setSelectedMetodoPago(e.target.value)}
+                                                            className="payment-radio"
+                                                        />
+                                                        <div className="payment-info">
+                                                            <h4>{metodo.nombre}</h4>
+                                                            <p className="payment-description">{metodo.descripcion}</p>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
                                             
                                             <button 
                                                 className="btn-next"
                                                 onClick={() => setActiveStep(4)}
+                                                disabled={!selectedMetodoPago}
                                             >
                                                 Continuar
                                             </button>
@@ -305,12 +418,23 @@ function CarritoView() {
                                             </div>
                                             <div className="summary-section">
                                                 <h4>💳 Pago</h4>
-                                                <p>{paymentData.metodo === 'tarjeta' ? 'Tarjeta' : paymentData.metodo.toUpperCase()}</p>
+                                                <p>{metodosPago.find(m => m.idMetodoPago == selectedMetodoPago)?.nombre || 'No seleccionado'}</p>
                                             </div>
                                             <div className="summary-section">
                                                 <h4>💰 Total</h4>
                                                 <h3>S/.{subtotal}</h3>
                                             </div>
+                                            
+                                            {/* Botón para confirmar pedido */}
+                                            <button 
+                                                className="btn btn-primary"
+                                                onClick={procesarPedido}
+                                                disabled={loading || !selectedMetodoPago}
+                                                style={{width: '100%', marginTop: '1rem'}}
+                                            >
+                                                {loading && <span className="loading-spinner"></span>}
+                                                {loading ? 'Procesando...' : 'Confirmar Pedido'}
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -318,12 +442,35 @@ function CarritoView() {
                             
                             <div className="cart-total-footer">
                                 <h3>Subtotal: S/.{subtotal}</h3>
+                                
+                                {/* Botón de debug temporal */}
+                                {isAuthenticated() && metodosPago.length > 0 && (
+                                    <button 
+                                        className="checkout-btn"
+                                        onClick={procesarPedido}
+                                        disabled={loading || cart.length === 0}
+                                        style={{backgroundColor: '#dc2626', marginBottom: '10px'}}
+                                    >
+                                        🐛 DEBUG: Procesar Pedido Directo
+                                    </button>
+                                )}
+                                
                                 <button 
                                     className="checkout-btn"
-                                    onClick={() => alert('Pedido confirmado!')}
-                                    disabled={activeStep !== 4}
+                                    onClick={() => {
+                                        if (!isAuthenticated()) {
+                                            navigate('/login');
+                                        } else {
+                                            setActiveStep(1);
+                                            // Scroll hacia el acordeón
+                                            document.querySelector('.accordion-steps')?.scrollIntoView({ 
+                                                behavior: 'smooth' 
+                                            });
+                                        }
+                                    }}
+                                    disabled={cart.length === 0}
                                 >
-                                    Confirmar Pedido
+                                    {!isAuthenticated() ? 'Iniciar Sesión para Comprar' : 'Proceder al Checkout'}
                                 </button>
                             </div>
                         </aside>
