@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 
 @Entity
@@ -14,23 +15,33 @@ import java.time.LocalDate;
 public class Producto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_producto")
     private Long idProducto;
 
     private String codigo;
     private String nombre;
+    
+    @Column(columnDefinition = "TEXT")
     private String descripcion;
+    
     private Double precio;
     private Integer stock;
+    
+    @Column(columnDefinition = "LONGTEXT")
     private String imagen;
+    
     private Boolean activo;
+    @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
 
     @ManyToOne
-    @JoinColumn(name = "idCategoria")
+    @JoinColumn(name = "id_categoria")
+    @JsonIgnoreProperties({"fechaCreacion", "activo"})
     private Categoria categoria;
 
     @ManyToOne
-    @JoinColumn(name = "idProveedor")
+    @JoinColumn(name = "id_proveedor")
+    @JsonIgnoreProperties({"RUC", "telefono", "correo", "personaContacto", "tipoProducto", "condicionesPago", "estado", "fechaRegistro"})
     private Proveedor proveedor;
 
     // Manual getters and setters as fallback

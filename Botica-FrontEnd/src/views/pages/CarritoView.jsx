@@ -8,6 +8,8 @@ import '../../styles/carrito.css';
 import '../../styles/CheckoutPage.css';
 import { useCart } from '../../controllers/CartContext';
 import { useAuth } from '../../controllers/AuthContext';
+import { jsPDF } from 'jspdf';
+import { ProductoService } from '../../services/ProductoService';
 
 // Función convertir precio a string
 const parsePrice = (priceStr) => {
@@ -31,6 +33,9 @@ function CarritoView() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pedidoActual, setPedidoActual] = useState(null);
+    const [displayCart, setDisplayCart] = useState([]);
     
     // Estados para los datos del formulario
     const [shippingData, setShippingData] = useState({
@@ -65,6 +70,32 @@ function CarritoView() {
         console.log('====================');
     }, [user, cart, isAuthenticated]);
 
+    useEffect(() => {
+        let isMounted = true;
+        const enrich = async () => {
+            try {
+                const enriched = await Promise.all(
+                    (cart || []).map(async (item) => {
+                        try {
+                            const id = item.idProducto || item.id;
+                            if (!id) return item;
+                            const producto = await ProductoService.obtenerProductoPorId(id);
+                            const src = ProductoService.obtenerUrlImagen(producto.imagen);
+                            return { ...item, src, name: item.name || producto.nombre };
+                        } catch {
+                            return item;
+                        }
+                    })
+                );
+                if (isMounted) setDisplayCart(enriched);
+            } catch {
+                setDisplayCart(cart);
+            }
+        };
+        enrich();
+        return () => { isMounted = false; };
+    }, [cart]);
+
     // Cargar métodos de pago al montar el componente
     useEffect(() => {
         if (isAuthenticated() && cart.length > 0) {
@@ -88,11 +119,171 @@ function CarritoView() {
         }
     };
 
+    // Función para generar PDF de la boleta
+    const generarPDFBoleta = async (pedido) => {
+        try {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            
+            // Cargar logo
+            const logoPath = `${process.env.PUBLIC_URL}/assets/Logodef.png`;
+            const logoImg = new Image();
+            logoImg.src = logoPath;
+            
+            await new Promise((resolve) => {
+                logoImg.onload = resolve;
+                logoImg.onerror = () => {
+                    console.warn('No se pudo cargar el logo');
+                    resolve();
+                };
+            });
+            
+            // Agregar logo (arriba a la izquierda)
+            if (logoImg.complete && logoImg.naturalHeight !== 0) {
+                doc.addImage(logoImg, 'PNG', 10, 10, 40, 20);
+            }
+            
+            // Título - BOLETA DE VENTA
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('BOLETA DE VENTA', pageWidth / 2, 20, { align: 'center' });
+            
+            // Información de la botica
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Botica EcoSalud', pageWidth / 2, 28, { align: 'center' });
+            doc.text('RUC: 20123456789', pageWidth / 2, 33, { align: 'center' });
+            doc.text('Dirección: Av. Principal 123, Lima', pageWidth / 2, 38, { align: 'center' });
+            
+            // Línea separadora
+            doc.setLineWidth(0.5);
+            doc.line(10, 43, pageWidth - 10, 43);
+            
+            // Información del pedido
+            let yPos = 50;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Pedido N°: ${pedido.idPedido || 'N/A'}`, 10, yPos);
+            yPos += 6;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Fecha: ${pedido.fechaPedido || new Date().toLocaleDateString()}`, 10, yPos);
+            yPos += 6;
+            doc.text(`Estado: ${pedido.estado || 'PENDIENTE'}`, 10, yPos);
+            yPos += 6;
+            doc.text(`Método de Pago: ${pedido.metodoPago?.nombre || metodosPago.find(m => m.idMetodoPago == selectedMetodoPago)?.nombre || 'N/A'}`, 10, yPos);
+            
+            // Información del cliente
+            yPos += 10;
+            doc.setFont('helvetica', 'bold');
+            doc.text('DATOS DEL CLIENTE', 10, yPos);
+            yPos += 6;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Cliente: ${user?.nombres || ''} ${user?.apellidos || ''}`, 10, yPos);
+            yPos += 6;
+            doc.text(`Email: ${user?.email || ''}`, 10, yPos);
+            yPos += 6;
+            if (user?.telefono) {
+                doc.text(`Teléfono: ${user.telefono}`, 10, yPos);
+                yPos += 6;
+            }
+            if (contactData.direccion || user?.direccion) {
+                doc.text(`Dirección: ${contactData.direccion || user?.direccion}`, 10, yPos);
+                yPos += 6;
+            }
+            
+            // Línea separadora
+            yPos += 4;
+            doc.line(10, yPos, pageWidth - 10, yPos);
+            yPos += 8;
+            
+            // Encabezado de tabla de productos
+            doc.setFont('helvetica', 'bold');
+            doc.text('N°', 10, yPos);
+            doc.text('Producto', 25, yPos);
+            doc.text('Cant.', 120, yPos);
+            doc.text('P. Unit.', 145, yPos);
+            doc.text('Subtotal', 175, yPos);
+            yPos += 2;
+            doc.line(10, yPos, pageWidth - 10, yPos);
+            yPos += 6;
+            
+            // Detalles de productos
+            doc.setFont('helvetica', 'normal');
+            let total = 0;
+            
+            // Obtener detalles del pedido o usar el carrito actual
+            const detalles = pedido.detalles || cart.map(item => ({
+                producto: {
+                    idProducto: item.idProducto || item.id,
+                    nombre: item.nombre || item.name,
+                    precio: parsePrice(item.precio || item.price)
+                },
+                cantidad: item.cantidad || item.quantity || 1,
+                precioUnitario: parsePrice(item.precio || item.price),
+                subtotal: parsePrice(item.precio || item.price) * (item.cantidad || item.quantity || 1)
+            }));
+            
+            detalles.forEach((detalle, index) => {
+                const producto = detalle.producto || {};
+                const numeroSecuencial = index + 1;
+                const nombre = producto.nombre || detalle.nombre || 'Producto';
+                const cantidad = detalle.cantidad || 1;
+                const precioUnitario = detalle.precioUnitario || producto.precio || 0;
+                const subtotal = detalle.subtotal || (precioUnitario * cantidad);
+                
+                doc.text(String(numeroSecuencial), 10, yPos);
+                
+                // Nombre del producto (con wrap si es muy largo)
+                const nombreCorto = nombre.length > 35 ? nombre.substring(0, 35) + '...' : nombre;
+                doc.text(nombreCorto, 25, yPos);
+                
+                doc.text(String(cantidad), 120, yPos);
+                doc.text(`S/. ${precioUnitario.toFixed(2)}`, 145, yPos);
+                doc.text(`S/. ${subtotal.toFixed(2)}`, 175, yPos);
+                
+                total += subtotal;
+                yPos += 6;
+                
+                // Nueva página si es necesario
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+            });
+            
+            // Línea antes del total
+            yPos += 4;
+            doc.line(10, yPos, pageWidth - 10, yPos);
+            yPos += 8;
+            
+            // Total
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`TOTAL: S/. ${(pedido.total || total).toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            
+            // Pie de página
+            yPos += 15;
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'italic');
+            doc.text('¡Gracias por su compra!', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 5;
+            doc.text('Botica EcoSalud - Cuidando tu salud naturalmente', pageWidth / 2, yPos, { align: 'center' });
+            
+            // Guardar PDF
+            const fileName = `Boleta_${pedido.idPedido || Date.now()}.pdf`;
+            doc.save(fileName);
+            
+            console.log('PDF generado exitosamente:', fileName);
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+        }
+    };
+
     const procesarPedido = async () => {
-        console.log('Iniciando procesarPedido...');
+        console.log('Iniciando procesarPedido desde carrito...');
         console.log('selectedMetodoPago:', selectedMetodoPago);
         console.log('user:', user);
-        console.log('cart:', cart);
+        console.log('user.rol:', user?.rol);
 
         if (!selectedMetodoPago) {
             setError('Selecciona un método de pago');
@@ -114,21 +305,14 @@ function CarritoView() {
         setError('');
 
         try {
-            // Preparar los detalles del pedido
+            // Preparar los detalles del pedido desde el carrito
             const detalles = cart.map(item => ({
                 idProducto: item.idProducto || item.id,
-                cantidad: item.cantidad || item.quantity
+                cantidad: item.cantidad || item.quantity || 1
             }));
 
-            console.log('detalles:', detalles);
-
-            // Validar que todos los productos tengan ID y cantidad válidos
-            const detallesInvalidos = detalles.filter(d => !d.idProducto || !d.cantidad || d.cantidad <= 0);
-            if (detallesInvalidos.length > 0) {
-                console.error('Detalles inválidos:', detallesInvalidos);
-                setError('Error: Algunos productos del carrito no son válidos');
-                return;
-            }
+            console.log('Productos en carrito:', cart);
+            console.log('Detalles a enviar:', detalles);
 
             const pedidoRequest = {
                 idUsuario: user.idUsuario,
@@ -137,13 +321,18 @@ function CarritoView() {
             };
 
             console.log('pedidoRequest:', pedidoRequest);
+            console.log('Headers a enviar:', {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token || 'dummy-token'}`,
+                'X-User-Role': user.rol || 'USER'
+            });
 
-            const response = await fetch('http://localhost:8080/api/pedidos/create', {
+            const response = await fetch('http://localhost:8080/api/pedidos/crear-desde-carrito', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user.token || 'dummy-token'}`,
-                    'X-User-Role': user.rol || 'CLIENTE'
+                    'X-User-Role': user.rol || 'USER'
                 },
                 body: JSON.stringify(pedidoRequest)
             });
@@ -153,15 +342,15 @@ function CarritoView() {
             if (response.ok) {
                 const pedidoCreado = await response.json();
                 console.log('pedidoCreado:', pedidoCreado);
-                setSuccess('¡Pedido realizado exitosamente!');
-                clearCart();
                 
-                // Redirigir a la página de confirmación después de 2 segundos
-                setTimeout(() => {
-                    navigate('/pedido-confirmado', { 
-                        state: { pedido: pedidoCreado } 
-                    });
-                }, 2000);
+                // Guardar el pedido para poder descargarlo después
+                setPedidoActual(pedidoCreado);
+                
+                // Mostrar modal de confirmación
+                setShowConfirmModal(true);
+                
+                // Limpiar carrito
+                clearCart();
             } else {
                 const errorText = await response.text();
                 console.log('Error response:', errorText);
@@ -193,6 +382,49 @@ function CarritoView() {
 
     return (
         <MainLayout backgroundImageUrl={`${process.env.PUBLIC_URL}/assets/mi-fondo.JPG`}> 
+            {/* Modal de confirmación de venta */}
+            {showConfirmModal && pedidoActual && (
+                <div className="modal-overlay">
+                    <div className="modal-content success-modal">
+                        <div className="modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <h2>¡Venta registrada!</h2>
+                        <p>Te llegará una confirmación a tu correo</p>
+                        <div className="modal-email">
+                            <strong>{user?.email}</strong>
+                        </div>
+                        <div className="modal-pedido-info">
+                            <p style={{marginTop: '15px', fontSize: '14px', color: '#6b7280'}}>
+                                Pedido N°: <strong>{pedidoActual.idPedido}</strong>
+                            </p>
+                        </div>
+                        <div className="modal-buttons">
+                            <button 
+                                className="btn-download-pdf"
+                                onClick={() => generarPDFBoleta(pedidoActual)}
+                            >
+                                📄 Descargar Boleta PDF
+                            </button>
+                            <button 
+                                className="btn-close-modal"
+                                onClick={() => {
+                                    setShowConfirmModal(false);
+                                    setPedidoActual(null);
+                                    setActiveStep(0);
+                                    setSelectedMetodoPago('');
+                                }}
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="cart-container">
                 <h1 className="page-title">Resumen de compra</h1>                
                 {cart.length === 0 ? (
@@ -204,7 +436,7 @@ function CarritoView() {
                     <div className="cart-content-wrapper">
                         <section className="cart-items-list" aria-labelledby="products-in-cart">
                             <h2 id="products-in-cart" className="section-header">Productos de tu carrito</h2>
-                            {cart.map(item => (
+                            {displayCart.map(item => (
                                 <CartItem 
                                     key={item.id || item.idProducto || item.name}
                                     item={item} 
@@ -442,36 +674,9 @@ function CarritoView() {
                             
                             <div className="cart-total-footer">
                                 <h3>Subtotal: S/.{subtotal}</h3>
-                                
-                                {/* Botón de debug temporal */}
-                                {isAuthenticated() && metodosPago.length > 0 && (
-                                    <button 
-                                        className="checkout-btn"
-                                        onClick={procesarPedido}
-                                        disabled={loading || cart.length === 0}
-                                        style={{backgroundColor: '#dc2626', marginBottom: '10px'}}
-                                    >
-                                        🐛 DEBUG: Procesar Pedido Directo
-                                    </button>
-                                )}
-                                
-                                <button 
-                                    className="checkout-btn"
-                                    onClick={() => {
-                                        if (!isAuthenticated()) {
-                                            navigate('/login');
-                                        } else {
-                                            setActiveStep(1);
-                                            // Scroll hacia el acordeón
-                                            document.querySelector('.accordion-steps')?.scrollIntoView({ 
-                                                behavior: 'smooth' 
-                                            });
-                                        }
-                                    }}
-                                    disabled={cart.length === 0}
-                                >
-                                    {!isAuthenticated() ? 'Iniciar Sesión para Comprar' : 'Proceder al Checkout'}
-                                </button>
+                                <p style={{fontSize: '14px', color: '#6b7280', marginTop: '10px'}}>
+                                    Complete los pasos del checkout para confirmar su pedido
+                                </p>
                             </div>
                         </aside>
                     </div>

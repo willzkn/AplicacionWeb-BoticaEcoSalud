@@ -244,6 +244,7 @@ export default function ProductsPage() {
           <table className="table">
             <thead>
               <tr>
+                <th>Imagen</th>
                 <th>ID</th>
                 <th>Código</th>
                 <th>Nombre</th>
@@ -257,13 +258,50 @@ export default function ProductsPage() {
             <tbody>
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
                     {searchTerm ? 'No se encontraron productos' : 'Sin productos registrados'}
                   </td>
                 </tr>
               )}
               {filteredProducts.map((p) => (
                 <tr key={p.idProducto} className={!p.activo ? 'row-inactive' : ''}>
+                  <td>
+                    {p.imagen ? (
+                      <img 
+                        src={p.imagen} 
+                        alt={p.nombre}
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '2px solid #e5e7eb',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          // Abrir imagen en modal o nueva pestaña
+                          window.open(p.imagen, '_blank');
+                        }}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/50?text=Sin+Img';
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        color: '#9ca3af'
+                      }}>
+                        📦
+                      </div>
+                    )}
+                  </td>
                   <td>{p.idProducto}</td>
                   <td>{p.codigo || '-'}</td>
                   <td>

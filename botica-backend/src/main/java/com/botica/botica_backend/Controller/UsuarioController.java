@@ -24,44 +24,59 @@ public class UsuarioController {
     @GetMapping("/all")
     @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
     public ResponseEntity<List<Usuario>> getUsuarios() {
-        return ResponseEntity.ok(usuarioService.getUsuarios());
+        logger.info("Obteniendo lista de usuarios");
+        try {
+            List<Usuario> usuarios = usuarioService.getUsuarios();
+            logger.info("Usuarios obtenidos correctamente");
+            return ResponseEntity.ok(usuarios);
+        } catch (Exception e) {
+            logger.error("Error al obtener lista de usuarios", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Registrar un nuevo usuario - VERSIÓN MODIFICADA
     @PostMapping("/register")
     public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
         try {
+            logger.info("Registrando nuevo usuario: {}", usuario.getEmail());
+            logger.info("Password recibido: {}", usuario.getPassword() == null ? "null" : "***");
+            
             Usuario nuevo = usuarioService.registrarUsuario(usuario);
+            nuevo.setPassword(null); // Seguridad: no devolver password
+            logger.info("Usuario registrado correctamente");
             return ResponseEntity.ok(nuevo);
         } catch (IllegalArgumentException e) {
+            logger.error("Error de validación al registrar usuario: {}", e.getMessage());
             // Convertir a 400 Bad Request para errores de negocio
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            logger.error("Error inesperado al registrar usuario", e);
             // Para cualquier otro error inesperado
-            return ResponseEntity.internalServerError().body("Error interno del servidor");
+            return ResponseEntity.internalServerError().body("Error interno del servidor: " + e.getMessage());
         }
     }
 
 
     // Iniciar sesión - Retorna datos del usuario
     @PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-    String email = loginData.get("email");
-    String password = loginData.get("password");
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
+        String email = loginData.get("email");
+        String password = loginData.get("password");
 
-    logger.info("Intento de inicio de sesión para el usuario: {}", email);
+        logger.info("Intento de inicio de sesión para el usuario: {}", email);
 
-    Usuario usuario = usuarioService.iniciarSesionConDatos(email, password);
+        Usuario usuario = usuarioService.iniciarSesionConDatos(email, password);
 
-    if (usuario != null) {
-        usuario.setPassword(null); // Seguridad
-        logger.info("Inicio de sesión exitoso para el usuario: {}", email);
-        return ResponseEntity.ok(usuario);
-    } else {
-        logger.warn("Inicio de sesión fallido para el usuario: {}", email);
-        return ResponseEntity.status(401).body("Credenciales incorrectas");
+        if (usuario != null) {
+            usuario.setPassword(null); // Seguridad
+            logger.info("Inicio de sesión exitoso para el usuario: {}", email);
+            return ResponseEntity.ok(usuario);
+        } else {
+            logger.warn("Inicio de sesión fallido para el usuario: {}", email);
+            return ResponseEntity.status(401).body("Credenciales incorrectas");
+        }
     }
-}
 
 
     // Cambiar contraseña

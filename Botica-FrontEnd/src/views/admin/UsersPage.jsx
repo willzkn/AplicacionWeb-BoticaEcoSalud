@@ -3,8 +3,10 @@ import AdminLayout from '../layouts/AdminLayout';
 import UserEditModal from '../partials/UserEditModal';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
 import AccessAlert from '../../components/AccessAlert';
+import { useAuth } from '../../controllers/AuthContext';
 
 export default function UsersPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,8 +19,17 @@ export default function UsersPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:8080/api/usuarios/all');
-      if (!res.ok) throw new Error('No se pudo cargar usuarios');
+      const res = await fetch('http://localhost:8080/api/usuarios/all', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token || 'dummy-token'}`,
+          'X-User-Role': user?.rol || 'ADMIN'
+        }
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'No se pudo cargar usuarios');
+      }
       const data = await res.json();
       setUsers(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -89,6 +100,42 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleRole = async (user) => {
+    const newRole = user.rol === 'ADMIN' ? 'USER' : 'ADMIN';
+    const roleText = newRole === 'ADMIN' ? 'Administrador' : 'Cliente';
+    
+    if (!window.confirm(`¿Estás seguro de cambiar el rol de "${user.nombres} ${user.apellidos}" a ${roleText}?\n\n${newRole === 'ADMIN' ? '⚠️ Este usuario tendrá acceso total al panel de administración.' : 'ℹ️ Este usuario solo podrá realizar compras.'}`)) {
+      return;
+    }
+
+    try {
+      const updatedUser = {
+        ...user,
+        rol: newRole
+      };
+
+      const res = await fetch(`http://localhost:8080/api/usuarios/${user.idUsuario}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedUser)
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Error al cambiar rol');
+      }
+
+      setSuccess(`Rol cambiado a ${roleText} correctamente`);
+      setTimeout(() => setSuccess(''), 3000);
+      load(); // Recargar lista
+    } catch (e) {
+      setError(e.message || 'Error al cambiar rol');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
   const handleSaveUser = (savedUser) => {
     setSuccess(editingUser ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
     setTimeout(() => setSuccess(''), 3000);
@@ -98,7 +145,13 @@ export default function UsersPage() {
   const handleExportCSV = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/usuarios/export/csv');
+      const response = await fetch('http://localhost:8080/api/usuarios/export/csv', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token || 'dummy-token'}`,
+          'X-User-Role': user?.rol || 'ADMIN'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Error al generar el archivo CSV');
@@ -268,6 +321,17 @@ export default function UsersPage() {
                         title="Editar usuario"
                       >
                         ✏️
+                      </button>
+                      <button 
+                        className="btn-action"
+                        onClick={() => handleToggleRole(u)}
+                        title={u.rol === 'ADMIN' ? 'Cambiar a Cliente' : 'Cambiar a Administrador'}
+                        style={{
+                          backgroundColor: u.rol === 'ADMIN' ? '#ff9800' : '#2196F3',
+                          color: 'white'
+                        }}
+                      >
+                        {u.rol === 'ADMIN' ? '👤' : '👑'}
                       </button>
                       <button 
                         className={`btn-action ${u.activo ? 'btn-deactivate' : 'btn-activate'}`}

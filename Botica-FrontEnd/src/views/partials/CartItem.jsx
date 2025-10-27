@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ProductoService } from '../../services/ProductoService';
 
 const parsePrice = (priceStr) => {
     if (!priceStr) return 0;
@@ -10,12 +10,24 @@ const parsePrice = (priceStr) => {
 
 function CartItem({ item, updateQuantity, removeItem }) {
     const itemTotal = (parsePrice(item.price) * item.quantity).toFixed(2);
+    const imgSrc = item.src || ProductoService.obtenerUrlImagen(item.imagen);
+    const [src, setSrc] = React.useState(imgSrc);
+
+    React.useEffect(() => {
+        // Sincroniza el estado local cuando cambie la prop de imagen
+        const next = item.src || ProductoService.obtenerUrlImagen(item.imagen);
+        setSrc(next);
+    }, [item.src, item.imagen]);
 
     return (
         <div className="cart-item-card">
             <div className="cart-item-details">
                 <Link to={`/producto/${item.id}`} className="cart-item-image">
-                    <img src={item.src} alt={item.name} />
+                    <img 
+                        src={src} 
+                        alt={item.name} 
+                        onError={() => setSrc(ProductoService.obtenerUrlImagen('default-product.svg'))}
+                    />
                 </Link>
                 <div className="cart-item-info">
                     <Link to={`/producto/${item.id}`} className="cart-item-name">{item.name}</Link>

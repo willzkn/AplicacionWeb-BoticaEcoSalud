@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import '../../styles/ProductCard.css';
 
+const stripPunctuation = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  return text.replace(/[.,;:!?¡¿"'()\[\]{}]/g, '').trim();
+};
+
 const ProductCard = ({ product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
 
@@ -20,11 +25,16 @@ const ProductCard = ({ product, onAddToCart }) => {
         <img src={product.src} alt={product.name} />
       </div>
       <div className="product-info">
-        <h2 className="product-title">{product.name}</h2>
+        <h2 className="product-title">{stripPunctuation(product.name)}</h2>
         <div className="product-price">{product.price}</div>
-        <div className="product-presentation">Presentación: {product.presentation}</div>
+        {(() => {
+          const pres = product.presentation || product.presentacion || product?.categoria?.descripcion || product?.categoria?.nombre || '';
+          return pres ? (
+            <div className="product-presentation">{stripPunctuation(pres)}</div>
+          ) : null;
+        })()}
         {product.description && (
-          <p className="product-description">{product.description}</p>
+          <p className="product-description">{stripPunctuation(product.description)}</p>
         )}
         
         <div className="quantity-section">
@@ -47,11 +57,6 @@ const ProductCard = ({ product, onAddToCart }) => {
           >
             AGREGAR AL CARRITO
           </button>
-          
-          <div className="delivery-info">
-            <span className="delivery-badge">50 MIN</span>
-            <span>Delivery</span>
-          </div>
         </div>
       </div>
     </div>

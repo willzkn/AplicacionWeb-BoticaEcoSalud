@@ -15,6 +15,7 @@ export default function useCatalogoController() {
   const [products, setProducts] = useState([]); // Solo productos del backend
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]); // categorías activas desde backend
 
   const togglePresentation = useCallback((name) => {
     setPresentations(prev => {
@@ -77,6 +78,20 @@ export default function useCatalogoController() {
         const precioMaximo = Math.max(...productosTransformados.map(p => p.precio));
         setPriceMax(Math.ceil(precioMaximo));
         
+        // Cargar categorías activas para el filtro "Presentación"
+        try {
+          const resp = await fetch('http://localhost:8080/api/categorias/activas');
+          if (resp.ok) {
+            const cats = await resp.json();
+            setCategories(Array.isArray(cats) ? cats : []);
+          } else {
+            setCategories([]);
+          }
+        } catch (e) {
+          console.warn('No se pudieron cargar categorías activas', e);
+          setCategories([]);
+        }
+        
       } catch (error) {
         console.error('Error al cargar productos del backend:', error);
         setError('Error al conectar con el servidor. No se pudieron cargar los productos.');
@@ -101,9 +116,9 @@ export default function useCatalogoController() {
     // Rango de precio (0 - priceMax)
     list = list.filter(p => parsePrice(p.price) <= priceMax);
 
-    // Presentación seleccionada(s)
+    // Presentación seleccionada(s): comparar con el campo transformado presentation
     if (presentations.size > 0) {
-      list = list.filter(p => presentations.has(p.presentation));
+      list = list.filter(p => p.presentation && presentations.has(p.presentation));
     }
 
     // Orden
@@ -117,13 +132,14 @@ export default function useCatalogoController() {
     // 'rating' no implementado por no existir campo; queda como orden por defecto
 
     return list;
-  }, [products, searchTerm, priceMax, presentations, sortOption]);
+  }, [products, searchTerm, priceMax, presentations, sortOption, categories]);
 
   return {
     // datos
     products: filteredProducts,
     loading,
     error,
+    categories,
     // filtros y controladores
     searchTerm,
     setSearchTerm,

@@ -1,5 +1,27 @@
 /* Reset y estilos base */
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Robustez para móviles muy pequeños (320px - 360px) en Admin */
+@media (max-width: 360px) {
+  .admin-shell {
+    padding: 12px;
+    margin: 20px auto;
+    border-radius: 16px;
+  }
+  .admin-sidebar {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .admin-nav .link {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .table th, .table td {
+    padding: 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
 html, body, #root { height: 100%; overflow-x: hidden; }
 
 /* Layout principal */
@@ -689,16 +711,59 @@ html, body, #root { height: 100%; overflow-x: hidden; }
   .admin-shell {
     grid-template-columns: 1fr;
     gap: 16px;
+    padding: 16px;
   }
   
   .admin-sidebar {
     position: relative;
     top: 0;
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(31, 38, 135, 0.10);
+  }
+
+  .admin-nav .link {
+    width: 100%;
+    display: block;
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .admin-content {
+    width: 100%;
+  }
+
+  /* Tablas scrollables en pantallas pequeñas */
+  .table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table thead {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 1;
   }
 }
 
 /* Media queries para móvil - Menú hamburguesa */
 @media (max-width: 768px) {
+  .admin-shell { padding: 12px; gap: 12px; }
+  .admin-sidebar {
+    position: static !important;
+    width: 100%;
+    margin: 0 0 10px 0;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .admin-content {
+    width: 100%;
+    padding: 0;
+  }
+  .table td, .table th { padding: 10px; font-size: 13px; }
   /* Header ajustado para móvil */
   .header {
     grid-template-columns: auto 1fr auto;

@@ -18,6 +18,8 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploadMethod, setUploadMethod] = useState('url'); // 'url' o 'file'
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -38,6 +40,13 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
           idCategoria: product.categoria?.idCategoria || '',
           idProveedor: product.proveedor?.idProveedor || ''
         });
+        setImagePreview(product.imagen || '');
+        // Detectar si es URL o Base64
+        if (product.imagen && product.imagen.startsWith('data:')) {
+          setUploadMethod('file');
+        } else {
+          setUploadMethod('url');
+        }
       } else {
         // Modo creación
         setFormData({
@@ -51,7 +60,10 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
           idCategoria: '',
           idProveedor: ''
         });
+        setImagePreview('');
+        setUploadMethod('url');
       }
+      setError('');
     }
   }, [isOpen, product]);
 
@@ -85,6 +97,35 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validar que sea una imagen
+      if (!file.type.startsWith('image/')) {
+        setError('Por favor selecciona un archivo de imagen válido');
+        return;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('La imagen no debe superar los 5MB');
+        return;
+      }
+
+      // Convertir a Base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setFormData(prev => ({
+          ...prev,
+          imagen: base64String
+        }));
+        setImagePreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -271,16 +312,101 @@ export default function ProductEditModal({ isOpen, onClose, product, onSave }) {
         </div>
 
         <div className="form-group">
-          <label htmlFor="imagen">URL de Imagen</label>
-          <input
-            type="url"
-            id="imagen"
-            name="imagen"
-            value={formData.imagen}
-            onChange={handleChange}
-            className="form-input"
-            placeholder="https://ejemplo.com/imagen.jpg"
-          />
+          <label>Imagen del Producto</label>
+          
+          {/* Selector de método */}
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="uploadMethod"
+                value="url"
+                checked={uploadMethod === 'url'}
+                onChange={(e) => setUploadMethod(e.target.value)}
+                style={{ marginRight: '8px' }}
+              />
+              URL de imagen
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="uploadMethod"
+                value="file"
+                checked={uploadMethod === 'file'}
+                onChange={(e) => setUploadMethod(e.target.value)}
+                style={{ marginRight: '8px' }}
+              />
+              Subir desde PC
+            </label>
+          </div>
+
+          {/* Input según método seleccionado */}
+          {uploadMethod === 'url' ? (
+            <input
+              type="url"
+              id="imagen"
+              name="imagen"
+              value={formData.imagen}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="https://ejemplo.com/imagen.jpg"
+            />
+          ) : (
+            <div>
+              <input
+                type="file"
+                id="imagenFile"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="form-input"
+                style={{ padding: '8px' }}
+              />
+              <small style={{ color: '#6b7280', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                Formatos: JPG, PNG, GIF, WEBP. Tamaño máximo: 5MB
+              </small>
+            </div>
+          )}
+
+          {/* Vista previa de la imagen */}
+          {(formData.imagen || imagePreview) && (
+            <div style={{ marginTop: '12px', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>Vista previa:</p>
+              <img 
+                src={imagePreview || formData.imagen} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  borderRadius: '8px', 
+                  border: '2px solid #e5e7eb',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, imagen: '' }));
+                  setImagePreview('');
+                }}
+                style={{
+                  display: 'block',
+                  margin: '8px auto 0',
+                  padding: '4px 12px',
+                  fontSize: '12px',
+                  color: '#ef4444',
+                  background: 'none',
+                  border: '1px solid #ef4444',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                🗑️ Eliminar imagen
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="form-group">

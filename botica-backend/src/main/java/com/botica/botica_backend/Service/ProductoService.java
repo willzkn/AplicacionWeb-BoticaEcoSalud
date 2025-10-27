@@ -54,7 +54,8 @@ public class ProductoService {
     }
 
     public List<Producto> listarActivos() {
-        return productoRepository.findByActivoTrue();
+        // Traer categoría y proveedor para que el frontend reciba categoria.descripcion
+        return productoRepository.findActivosConRelaciones();
     }
 
     public List<Producto> buscarPorNombre(String nombre) {
