@@ -1,6 +1,8 @@
--- =====================================================
--- SCRIPT COMPLETO CORREGIDO - BOTICA ECOSALUD
--- =====================================================
+
+-- ==================================================================================
+-- SCRIPT COMPLETO CORREGIDO - BOTICA ECOSALUD 
+-- RECUERDA QUE SIN ESTE SCRIPT Y XAMPP INICIALIZADO SPRING NO PODRA INICIALIZARSE
+-- ==================================================================================
 
 -- Crear base de datos
 CREATE DATABASE IF NOT EXISTS botica CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
