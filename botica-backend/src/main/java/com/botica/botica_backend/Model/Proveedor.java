@@ -14,16 +14,26 @@ import java.time.LocalDate;
 public class Proveedor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_proveedor")
     private Long idProveedor;
 
+    @Column(name = "nombre_comercial")
     private String nombreComercial;
+    @Column(name = "ruc")
     private String RUC;
+    @Column(name = "telefono")
     private String telefono;
+    @Column(name = "correo")
     private String correo;
+    @Column(name = "persona_contacto")
     private String personaContacto;
+    @Column(name = "tipo_producto")
     private String tipoProducto;
+    @Column(name = "condiciones_pago")
     private String condicionesPago;
+    @Column(name = "estado")
     private Boolean estado;
+    @Column(name = "fecha_registro")
     private LocalDate fechaRegistro;
 
     // Manual getters and setters as fallback

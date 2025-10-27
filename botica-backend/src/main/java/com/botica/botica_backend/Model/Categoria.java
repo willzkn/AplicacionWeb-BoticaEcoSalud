@@ -14,12 +14,14 @@ import java.time.LocalDate;
 public class Categoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_categoria")
     private Long idCategoria;
 
     @Column(nullable = false)
     private String nombre;
     private String descripcion;
     private Boolean activo;
+    @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
 
     // Manual getters and setters as fallback

@@ -26,7 +26,9 @@
   gap: 1.5rem;
   position: sticky;
   top: 100px; /* Se queda fija al hacer scroll */
-  
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
 }
 
 .filter-group {
@@ -46,6 +48,52 @@
   display: block;
 }
 
+/* Opciones del filtro como grilla de pills */
+.filter-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* Dentro del sidebar mantener una sola columna para evitar desbordes */
+.filters-sidebar .filter-options {
+  grid-template-columns: 1fr !important;
+}
+
+.checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(30, 64, 153, 0.15);
+  color: #1e4099;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.checkbox-pill:hover {
+  background: rgba(30, 64, 153, 0.06);
+  border-color: rgba(30, 64, 153, 0.35);
+  box-shadow: 0 2px 10px rgba(30, 64, 153, 0.15);
+}
+
+.checkbox-pill input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: #1e4099;
+}
+
+.checkbox-pill span {
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 
 /* Estilos para el rango de precio */
 input[type="range"] {
@@ -138,6 +186,26 @@ input[type="checkbox"]:hover {
   .products-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Robustez para móviles muy pequeños (320px - 360px) */
+@media (max-width: 360px) {
+  .catalogo-page-container {
+    gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .filters-sidebar {
+    padding: 12px;
+    margin: 0 0 12px 0;
+    border-radius: 10px;
+  }
+  .filter-group label { font-size: 13px; }
+  .checkbox-pill { padding: 8px 10px; border-radius: 10px; }
+  .checkbox-pill span { font-size: 12px; }
+  .products-content { gap: 12px; }
+  .filter-pills-container { gap: 8px; padding-left: 0; flex-wrap: wrap; }
+  .filter-pill { padding: 6px 10px; font-size: 12px; }
 }
 
 /* Estados de carga y error */

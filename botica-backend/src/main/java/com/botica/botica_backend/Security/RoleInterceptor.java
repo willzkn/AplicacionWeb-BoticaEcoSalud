@@ -53,7 +53,21 @@ public class RoleInterceptor implements HandlerInterceptor {
         if (allowedRoles.length > 0) {
             String userRole = getUserRoleFromRequest(request);
 
-            if (userRole == null || !Arrays.asList(allowedRoles).contains(userRole)) {
+            System.out.println("=== VALIDACIÓN DE ROLES ===");
+            System.out.println("Roles permitidos: " + Arrays.toString(allowedRoles));
+            System.out.println("Rol del usuario: " + userRole);
+            
+            // Convertir a mayúsculas para comparación case-insensitive
+            String userRoleUpper = userRole != null ? userRole.toUpperCase() : null;
+            boolean isAllowed = userRoleUpper != null && 
+                Arrays.stream(allowedRoles)
+                    .anyMatch(role -> role.equalsIgnoreCase(userRoleUpper));
+            
+            System.out.println("Rol del usuario (uppercase): " + userRoleUpper);
+            System.out.println("¿Rol permitido?: " + isAllowed);
+            System.out.println("===========================");
+
+            if (!isAllowed) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.getWriter().write("{\"error\":\"No tienes permisos para acceder a este recurso\"}");
                 response.setContentType("application/json");
@@ -77,6 +91,11 @@ public class RoleInterceptor implements HandlerInterceptor {
         if (role == null) {
             role = request.getParameter("userRole");
         }
+
+        System.out.println("=== DEBUG ROLE INTERCEPTOR ===");
+        System.out.println("X-User-Role header: " + role);
+        System.out.println("Request URI: " + request.getRequestURI());
+        System.out.println("==============================");
 
         return role;
     }

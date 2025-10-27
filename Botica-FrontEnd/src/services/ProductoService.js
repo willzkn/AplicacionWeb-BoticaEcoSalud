@@ -3,6 +3,7 @@
 const API_BASE_URL = 'http://localhost:8080/api';
 
 export const ProductoService = {
+
     // Obtener todos los productos públicos
     async obtenerProductosPublicos() {
         try {
@@ -73,20 +74,38 @@ export const ProductoService = {
         }
     },
 
-    // Obtener URL completa de imagen
+    // Obtener URL completa de imagen (soporta base64, data URLs y backend)
     obtenerUrlImagen(nombreImagen) {
-        // Si no hay imagen, usar imagen por defecto del backend
-        if (!nombreImagen || nombreImagen.trim() === '') {
+        if (!nombreImagen || typeof nombreImagen !== 'string' || nombreImagen.trim() === '') {
             return `${API_BASE_URL}/imagenes/view/default-product.svg`;
         }
-        
-        // Si ya es una URL completa, devolverla tal como está
-        if (nombreImagen.startsWith('http')) {
-            return nombreImagen;
+
+        const val = nombreImagen.trim();
+
+        // 1) Si ya viene como data URL
+        if (val.startsWith('data:image')) {
+            return val;
         }
-        
-        // Todas las imágenes vienen del backend
-        return `${API_BASE_URL}/imagenes/view/${nombreImagen}`;
+
+        // 2) Si es una URL absoluta
+        if (val.startsWith('http')) {
+            return val;
+        }
+
+        // 3) Si parece base64 "puro" (sin prefijo data:)
+        // Heurística: es largo y solo contiene caracteres base64
+        const base64Regex = /^[A-Za-z0-9+/=\r\n]+$/;
+        if (val.length > 200 && base64Regex.test(val.replace(/\s/g, ''))) {
+            // Intento de detectar formato por encabezado base64 (muy básico)
+            // Si no se detecta, usar image/jpeg por defecto
+            const mime = val.startsWith('/9j/') ? 'image/jpeg' : 'image/png';
+            return `data:${mime};base64,${val}`;
+        }
+
+        // 4) Caso por defecto: servido por backend; añadir cache-busting
+        const cacheBust = `t=${Date.now()}`;
+        const sep = val.includes('?') ? '&' : '?';
+        return `${API_BASE_URL}/imagenes/view/${val}${sep}${cacheBust}`;
     },
 
     // Transformar producto del backend al formato del frontend
@@ -100,8 +119,9 @@ export const ProductoService = {
             precio: productoBackend.precio,
             src: ProductoService.obtenerUrlImagen(productoBackend.imagen),
             imagen: productoBackend.imagen,
-            presentation: productoBackend.categoria?.nombre || 'General',
-            presentacion: productoBackend.categoria?.nombre || 'General',
+            // Presentación: usar descripcion de la categoría desde la BD
+            presentation: (productoBackend.categoria?.descripcion || productoBackend.categoria?.nombre || 'General'),
+            presentacion: (productoBackend.categoria?.descripcion || productoBackend.categoria?.nombre || 'General'),
             description: productoBackend.descripcion || '',
             descripcion: productoBackend.descripcion || '',
             stock: productoBackend.stock || 0,

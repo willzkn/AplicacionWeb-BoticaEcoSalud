@@ -19,6 +19,7 @@ public class PedidoService {
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
     private final MetodoPagoRepository metodoPagoRepository;
+    private final CarritoRepository carritoRepository;
 
     /**
      * Crear un nuevo pedido con sus detalles
@@ -74,7 +75,13 @@ public class PedidoService {
 
         // Actualizar el total del pedido
         pedido.setTotal(totalPedido);
-        return pedidoRepository.save(pedido);
+        pedido = pedidoRepository.save(pedido);
+        
+        // Cargar los detalles del pedido para devolverlos en la respuesta
+        List<Detalle_pedido> detalles = detallePedidoRepository.findByPedido(pedido);
+        pedido.setDetalles(detalles);
+        
+        return pedido;
     }
 
     /**
@@ -143,6 +150,75 @@ public class PedidoService {
         stats.setVentasHoy(ventasHoy != null ? ventasHoy : 0.0);
         
         return stats;
+    }
+
+    /**
+     * Crear pedido desde el carrito del usuario
+     */
+    @Transactional
+    public Pedido crearPedidoDesdeCarrito(Long idUsuario, Long idMetodoPago) {
+        // Validar usuario
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Validar método de pago
+        Metodo_pago metodoPago = metodoPagoRepository.findById(idMetodoPago)
+                .orElseThrow(() -> new RuntimeException("Método de pago no encontrado"));
+
+        // Obtener items del carrito
+        List<Carrito> itemsCarrito = carritoRepository.findByUsuario(usuario);
+        
+        if (itemsCarrito.isEmpty()) {
+            throw new RuntimeException("El carrito está vacío");
+        }
+
+        // Crear el pedido
+        Pedido pedido = new Pedido();
+        pedido.setUsuario(usuario);
+        pedido.setMetodoPago(metodoPago);
+        pedido.setFechaPedido(LocalDate.now());
+        pedido.setEstado("PENDIENTE");
+        pedido.setTotal(0.0);
+
+        // Guardar el pedido primero para obtener el ID
+        pedido = pedidoRepository.save(pedido);
+
+        // Procesar los items del carrito
+        double totalPedido = 0.0;
+        for (Carrito itemCarrito : itemsCarrito) {
+            Producto producto = itemCarrito.getProducto();
+            Integer cantidad = itemCarrito.getCantidad();
+
+            // Verificar stock disponible
+            if (producto.getStock() < cantidad) {
+                throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre());
+            }
+
+            // Crear detalle del pedido
+            Detalle_pedido detalle = new Detalle_pedido();
+            detalle.setPedido(pedido);
+            detalle.setProducto(producto);
+            detalle.setCantidad(cantidad);
+            detalle.setPrecioUnitario(producto.getPrecio());
+            detalle.setSubtotal(producto.getPrecio() * cantidad);
+
+            detallePedidoRepository.save(detalle);
+
+            // Actualizar stock del producto
+            producto.setStock(producto.getStock() - cantidad);
+            productoRepository.save(producto);
+
+            totalPedido += detalle.getSubtotal();
+        }
+
+        // Actualizar el total del pedido
+        pedido.setTotal(totalPedido);
+        pedido = pedidoRepository.save(pedido);
+
+        // Vaciar el carrito después de crear el pedido
+        carritoRepository.vaciarCarrito(idUsuario);
+
+        return pedido;
     }
 
     /**

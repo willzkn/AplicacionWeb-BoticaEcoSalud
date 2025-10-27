@@ -72,8 +72,17 @@ public class ProductoController {
 
     // READ - Listar productos públicos (sin autenticación para el catálogo)
     @GetMapping("/publicos")
-    public ResponseEntity<List<Producto>> listarProductosPublicos() {
-        return ResponseEntity.ok(productoService.listarActivos());
+    public ResponseEntity<?> listarProductosPublicos() {
+        try {
+            List<Producto> productos = productoService.listarActivos();
+            return ResponseEntity.ok(productos);
+        } catch (IllegalArgumentException e) {
+            log.error("Error de validación al listar productos públicos: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error inesperado al listar productos públicos", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al cargar productos públicos"));
+        }
     }
 
     // READ - Buscar productos por nombre

@@ -36,6 +36,14 @@ public class UsuarioService {
             throw new IllegalArgumentException("El email ya está registrado");
         }
 
+        // Si no se proporciona contraseña, asignar contraseña temporal por defecto
+        boolean usaPasswordTemporal = false;
+        if (usuario.getPassword() == null || usuario.getPassword().trim().isEmpty()) {
+            usuario.setPassword("123456");
+            usaPasswordTemporal = true;
+            System.out.println("⚠️ Usuario creado con contraseña temporal: " + usuario.getEmail() + " - Contraseña: 123456");
+        }
+
         // Validación de teléfono
         if (usuario.getTelefono() != null && !usuario.getTelefono().trim().isEmpty()) {
             if (usuarioRepository.existsByTelefono(usuario.getTelefono())) {
@@ -49,6 +57,9 @@ public class UsuarioService {
 
         // Asignar valores por defecto que pueden faltar
         usuario.setActivo(true);
+
+        // Marcar que debe cambiar contraseña si usa la temporal
+        usuario.setDebeCambiarPassword(usaPasswordTemporal);
 
         // Fecha de registro obligatoria
         if (usuario.getFechaRegistro() == null) {

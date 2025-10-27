@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../controllers/AuthContext';
+import MainLayout from '../layouts/MainLayout';
+import '../../styles/access-denied.css';
 
 /**
  * Página de acceso denegado
@@ -14,13 +16,13 @@ export default function AccessDenied() {
   const reason = location.state?.reason || 'insufficient_permissions';
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {/* Icono de advertencia */}
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+    <MainLayout backgroundImageUrl={`${process.env.PUBLIC_URL}/assets/mi-fondo.JPG`}>
+      <div className="access-denied-container">
+        <div className="access-denied-card">
+          {/* Icono de advertencia con estilo de botica */}
+          <div className="access-denied-icon">
             <svg 
-              className="h-6 w-6 text-red-600" 
+              className="icon-warning" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
@@ -35,85 +37,84 @@ export default function AccessDenied() {
           </div>
 
           {/* Título */}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Acceso Denegado
-            </h2>
-            
-            {/* Mensaje personalizado */}
-            <p className="text-sm text-gray-600 mb-6">
-              {message}
-            </p>
+          <h1 className="access-denied-title">
+            🔒 Acceso Denegado
+          </h1>
+          
+          {/* Mensaje personalizado */}
+          <p className="access-denied-message">
+            {message}
+          </p>
 
-            {/* Información adicional basada en el estado del usuario */}
+          {/* Información adicional basada en el estado del usuario */}
+          {!isAuthenticated() ? (
+            <div className="access-denied-alert alert-info">
+              <div className="alert-icon">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="alert-content">
+                <p>
+                  Necesitas iniciar sesión con una cuenta de administrador para acceder a esta sección.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="access-denied-alert alert-warning">
+              <div className="alert-icon">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="alert-content">
+                <p>
+                  Tu cuenta <strong>({user?.email})</strong> no tiene permisos de administrador. 
+                  Solo los administradores pueden acceder a esta sección.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Botones de acción */}
+          <div className="access-denied-actions">
             {!isAuthenticated() ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-blue-700">
-                      Necesitas iniciar sesión con una cuenta de administrador para acceder a esta sección.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      Tu cuenta ({user?.email}) no tiene permisos de administrador. 
-                      Solo los administradores pueden acceder a esta sección.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Botones de acción */}
-            <div className="space-y-3">
-              {!isAuthenticated() ? (
-                <Link
-                  to="/login"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Iniciar Sesión
-                </Link>
-              ) : (
-                <Link
-                  to="/"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  Ir al Inicio
-                </Link>
-              )}
-              
-              <Link
-                to="/catalogo"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Ver Catálogo
+              <Link to="/login" className="btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                  <polyline points="10 17 15 12 10 7"></polyline>
+                  <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Iniciar Sesión
               </Link>
-            </div>
+            ) : (
+              <Link to="/" className="btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                Ir al Inicio
+              </Link>
+            )}
+            
+            <Link to="/catalogo" className="btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              Ver Catálogo de Productos
+            </Link>
+          </div>
 
-            {/* Información de contacto */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
-                Si crees que esto es un error, contacta al administrador del sistema.
-              </p>
-            </div>
+          {/* Información de contacto */}
+          <div className="access-denied-footer">
+            <p>
+              💡 Si crees que esto es un error, contacta al administrador del sistema.
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

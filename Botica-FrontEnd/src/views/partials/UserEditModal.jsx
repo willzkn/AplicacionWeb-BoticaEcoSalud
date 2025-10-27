@@ -75,15 +75,17 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
       if (!formData.apellidos.trim()) {
         throw new Error('Los apellidos son obligatorios');
       }
-      if (!user && !formData.password.trim()) {
-        throw new Error('La contraseña es obligatoria para nuevos usuarios');
+      // Validar contraseña solo si se proporciona
+      if (!user && formData.password.trim() && formData.password.trim().length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
       // Preparar datos para envío
       const dataToSend = { ...formData };
       
-      // Si es edición y no hay contraseña nueva, no enviar el campo password
-      if (user && !formData.password.trim()) {
+      // Si no hay contraseña (tanto en creación como edición), no enviar el campo
+      // El backend asignará 123456 automáticamente para nuevos usuarios
+      if (!formData.password || !formData.password.trim()) {
         delete dataToSend.password;
       }
 
@@ -157,17 +159,26 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="rol">Rol</label>
+            <label htmlFor="rol">Rol del Usuario *</label>
             <select
               id="rol"
               name="rol"
               value={formData.rol}
               onChange={handleChange}
               className="form-input"
+              style={{ 
+                fontWeight: '600',
+                color: formData.rol === 'ADMIN' ? '#d32f2f' : '#1976d2'
+              }}
             >
-              <option value="USER">Usuario</option>
-              <option value="ADMIN">Administrador</option>
+              <option value="USER">👤 Cliente</option>
+              <option value="ADMIN">👑 Administrador</option>
             </select>
+            <small style={{ color: '#666', fontSize: '0.85em', marginTop: '4px', display: 'block' }}>
+              {formData.rol === 'ADMIN' 
+                ? '⚠️ Este usuario tendrá acceso total al panel de administración' 
+                : 'ℹ️ Este usuario solo podrá realizar compras'}
+            </small>
           </div>
 
           <div className="form-group">
@@ -209,22 +220,37 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
             />
           </div>
 
-          {showPassword && (
+          {user && showPassword && (
             <div className="form-group">
-              <label htmlFor="password">
-                {user ? 'Nueva Contraseña (opcional)' : 'Contraseña *'}
-              </label>
+              <label htmlFor="password">Nueva Contraseña (opcional)</label>
               <input
                 type="password"
                 id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                required={!user}
                 className="form-input"
-                placeholder={user ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'}
-                minLength={user ? 0 : 6}
+                placeholder="Dejar vacío para mantener actual"
               />
+            </div>
+          )}
+          
+          {!user && (
+            <div className="form-group">
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#dbeafe', 
+                border: '1px solid #3b82f6', 
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}>
+                <strong style={{ color: '#1e40af' }}>🔐 Contraseña Automática</strong>
+                <p style={{ margin: '8px 0 0 0', color: '#1e3a8a' }}>
+                  El usuario será creado con la contraseña temporal: <strong>123456</strong>
+                  <br />
+                  <small>El cliente deberá cambiarla al iniciar sesión por primera vez.</small>
+                </p>
+              </div>
             </div>
           )}
         </div>

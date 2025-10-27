@@ -20,9 +20,28 @@ public class PedidoController {
 
     // Crear pedido (disponible para clientes autenticados)
     @PostMapping("/create")
-    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER","cliente","Admin","admin","Cliente","client"})
     public ResponseEntity<?> crearPedido(@RequestBody PedidoService.PedidoRequest pedidoRequest) {
         try {
+            Pedido nuevoPedido = pedidoService.crearPedido(pedidoRequest);
+            return ResponseEntity.ok(nuevoPedido);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Crear pedido desde el carrito del usuario (con productos del frontend)
+    @PostMapping("/crear-desde-carrito")
+    public ResponseEntity<?> crearPedidoDesdeCarrito(@RequestBody PedidoService.PedidoRequest pedidoRequest) {
+        try {
+            if (pedidoRequest.getIdUsuario() == null || pedidoRequest.getIdMetodoPago() == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "idUsuario e idMetodoPago son requeridos"));
+            }
+            
+            if (pedidoRequest.getDetalles() == null || pedidoRequest.getDetalles().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El carrito está vacío"));
+            }
+            
             Pedido nuevoPedido = pedidoService.crearPedido(pedidoRequest);
             return ResponseEntity.ok(nuevoPedido);
         } catch (RuntimeException e) {
@@ -48,7 +67,7 @@ public class PedidoController {
 
     // Obtener historial de pedidos de un usuario
     @GetMapping("/usuario/{idUsuario}")
-    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER"})
     public ResponseEntity<List<Pedido>> historialUsuario(@PathVariable Long idUsuario) {
         List<Pedido> historial = pedidoService.obtenerPedidosPorUsuario(idUsuario);
         return ResponseEntity.ok(historial);
@@ -63,7 +82,7 @@ public class PedidoController {
 
     // Obtener detalles de un pedido
     @GetMapping("/{id}/detalles")
-    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN"})
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER"})
     public ResponseEntity<List<Detalle_pedido>> obtenerDetalles(@PathVariable Long id) {
         List<Detalle_pedido> detalles = pedidoService.obtenerDetallesPedido(id);
         return ResponseEntity.ok(detalles);

@@ -20,6 +20,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     // Buscar productos activos
     List<Producto> findByActivoTrue();
     
+    // Buscar productos activos con relaciones cargadas (categoría y proveedor)
+    @Query("SELECT p FROM Producto p JOIN FETCH p.categoria JOIN FETCH p.proveedor WHERE p.activo = true")
+    List<Producto> findActivosConRelaciones();
+    
     // Buscar por nombre (case insensitive)
     List<Producto> findByNombreContainingIgnoreCase(String nombre);
     

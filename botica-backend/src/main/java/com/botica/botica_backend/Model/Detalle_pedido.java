@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "detalle_pedido")
@@ -13,17 +14,21 @@ import lombok.AllArgsConstructor;
 public class Detalle_pedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idDetalle")
     private Long idDetalle;
 
-    @Column(nullable = false)
+    @Column(name = "cantidad", nullable = false)
     private Integer cantidad;
-    @Column(nullable = false)
+    
+    @Column(name = "precioUnitario", nullable = false)
     private Double precioUnitario;
-    @Column(nullable = false)
+    
+    @Column(name = "subtotal", nullable = false)
     private Double subtotal;
 
     @ManyToOne
     @JoinColumn(name = "idPedido", nullable = false)
+    @JsonBackReference
     private Pedido pedido;
 
     @ManyToOne

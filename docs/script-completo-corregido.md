@@ -21,7 +21,8 @@ CREATE TABLE usuarios (
     direccion VARCHAR(255),
     rol VARCHAR(255),
     activo BOOLEAN,
-    fecha_registro DATE
+    fecha_registro DATE,
+    debe_cambiar_password BOOLEAN DEFAULT FALSE
 );
 
 -- Tabla categorias
@@ -48,11 +49,12 @@ CREATE TABLE proveedor (
 );
 
 -- Tabla metodos_pago
-CREATE TABLE metodos_pago (
+CREATE TABLE IF NOT EXISTS metodos_pago (
     id_metodo BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    descripcion VARCHAR(255),
-    activo BOOLEAN NOT NULL
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabla productos
@@ -60,10 +62,10 @@ CREATE TABLE productos (
     id_producto BIGINT AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(255),
     nombre VARCHAR(255),
-    descripcion VARCHAR(255),
+    descripcion TEXT,
     precio DOUBLE,
     stock INTEGER,
-    imagen VARCHAR(255),
+    imagen LONGTEXT,
     activo BOOLEAN,
     fecha_creacion DATE,
     id_categoria BIGINT,
@@ -78,34 +80,37 @@ CREATE TABLE carrito (
     cantidad INTEGER NOT NULL,
     precio_unitario DOUBLE NOT NULL,
     fecha_agregado DATE NOT NULL,
-    id_usuario BIGINT NOT NULL,
-    id_producto BIGINT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+    idUsuario BIGINT NOT NULL,
+    idProducto BIGINT NOT NULL,
+    FOREIGN KEY (idUsuario) REFERENCES usuarios(id_usuario),
+    FOREIGN KEY (idProducto) REFERENCES productos(id_producto)
 );
 
 -- Tabla pedidos
-CREATE TABLE pedidos (
-    id_pedido BIGINT AUTO_INCREMENT PRIMARY KEY,
-    total DOUBLE,
-    estado VARCHAR(255),
-    fecha_pedido DATE,
-    id_usuario BIGINT,
-    id_metodo_pago BIGINT,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_metodo_pago) REFERENCES metodos_pago(id_metodo)
+CREATE TABLE IF NOT EXISTS pedidos (
+    idPedido BIGINT AUTO_INCREMENT PRIMARY KEY,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    estado VARCHAR(50) NOT NULL DEFAULT 'PENDIENTE',
+    fechaPedido DATE NOT NULL,
+    idUsuario BIGINT NOT NULL,
+    idMetodoPago BIGINT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (idUsuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (idMetodoPago) REFERENCES metodos_pago(id_metodo) ON DELETE RESTRICT
 );
 
 -- Tabla detalle_pedido
-CREATE TABLE detalle_pedido (
-    id_detalle BIGINT AUTO_INCREMENT PRIMARY KEY,
-    cantidad INTEGER NOT NULL,
-    precio_unitario DOUBLE NOT NULL,
-    subtotal DOUBLE NOT NULL,
-    id_pedido BIGINT NOT NULL,
-    id_producto BIGINT NOT NULL,
-    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido),
-    FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+CREATE TABLE IF NOT EXISTS detalle_pedido (
+    idDetalle BIGINT AUTO_INCREMENT PRIMARY KEY,
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    precioUnitario DECIMAL(10,2) NOT NULL CHECK (precioUnitario >= 0),
+    subtotal DECIMAL(10,2) NOT NULL CHECK (subtotal >= 0),
+    idPedido BIGINT NOT NULL,
+    idProducto BIGINT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idPedido) REFERENCES pedidos(idPedido) ON DELETE CASCADE,
+    FOREIGN KEY (idProducto) REFERENCES productos(id_producto) ON DELETE RESTRICT
 );
 
 -- Tabla password_reset_tokens
@@ -177,10 +182,10 @@ CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_productos_categoria ON productos(id_categoria);
 CREATE INDEX idx_productos_proveedor ON productos(id_proveedor);
 CREATE INDEX idx_productos_activo ON productos(activo);
-CREATE INDEX idx_carrito_usuario ON carrito(id_usuario);
-CREATE INDEX idx_pedidos_usuario ON pedidos(id_usuario);
-CREATE INDEX idx_pedidos_fecha ON pedidos(fecha_pedido);
-CREATE INDEX idx_detalle_pedido ON detalle_pedido(id_pedido);
+CREATE INDEX idx_carrito_usuario ON carrito(idUsuario);
+CREATE INDEX idx_pedidos_usuario ON pedidos(idUsuario);
+CREATE INDEX idx_pedidos_fecha ON pedidos(fechaPedido);
+CREATE INDEX idx_detalle_pedido ON detalle_pedido(idPedido);
 
 -- =====================================================
 -- VERIFICACIÓN DE DATOS

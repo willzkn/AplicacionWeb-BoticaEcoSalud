@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 
 @Entity
@@ -16,12 +17,15 @@ import java.time.LocalDate;
 public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario")
     private Long idUsuario;
 
     @Email
     @NotBlank
     @Column(nullable = false, unique = true)
     private String email;
+    
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
     @NotBlank
@@ -35,7 +39,11 @@ public class Usuario {
     private String direccion;
     private String rol;
     private Boolean activo;
+    @Column(name = "fecha_registro")
     private LocalDate fechaRegistro;
+    
+    @Column(name = "debe_cambiar_password")
+    private Boolean debeCambiarPassword;
 
     // Manual getters and setters as fallback
     public Long getIdUsuario() { return idUsuario; }
@@ -67,4 +75,7 @@ public class Usuario {
     
     public LocalDate getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDate fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+    
+    public Boolean getDebeCambiarPassword() { return debeCambiarPassword; }
+    public void setDebeCambiarPassword(Boolean debeCambiarPassword) { this.debeCambiarPassword = debeCambiarPassword; }
 }
