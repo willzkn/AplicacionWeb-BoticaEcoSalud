@@ -120,7 +120,8 @@ function CarritoView() {
     };
 
     // Función para generar PDF de la boleta
-    const generarPDFBoleta = async (pedido) => {
+    const generarPDFBoleta = async (pedido, options = {}) => {
+        const { download = true, silent = false } = options;
         try {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
@@ -271,11 +272,49 @@ function CarritoView() {
             
             // Guardar PDF
             const fileName = `Boleta_${pedido.idPedido || Date.now()}.pdf`;
-            doc.save(fileName);
-            
-            console.log('PDF generado exitosamente:', fileName);
+            const dataUriString = doc.output('datauristring');
+            const pdfBase64 = dataUriString.split(',')[1] || null;
+
+            if (download) {
+                doc.save(fileName);
+            }
+
+            if (!silent) {
+                console.log('PDF generado exitosamente:', fileName);
+            }
+
+            return pdfBase64;
         } catch (error) {
             console.error('Error al generar PDF:', error);
+            return null;
+        }
+    };
+
+    const enviarConfirmacionConBoleta = async (pedido) => {
+        if (!pedido?.idPedido) return;
+
+        try {
+            const pdfBase64 = await generarPDFBoleta(pedido, { download: false, silent: true });
+            const body = pdfBase64 ? { boletaPdfBase64: pdfBase64 } : {};
+
+            const response = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/confirmacion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token || 'dummy-token'}`,
+                    'X-User-Role': user?.rol || 'USER'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error al enviar confirmación de pedido:', response.status, errorText);
+            } else {
+                console.log('Confirmación de pedido enviada correctamente');
+            }
+        } catch (error) {
+            console.error('Error al preparar o enviar la boleta del pedido:', error);
         }
     };
 
@@ -345,7 +384,10 @@ function CarritoView() {
                 
                 // Guardar el pedido para poder descargarlo después
                 setPedidoActual(pedidoCreado);
-                
+
+                // Enviar confirmación con la boleta generada desde el frontend
+                await enviarConfirmacionConBoleta(pedidoCreado);
+
                 // Mostrar modal de confirmación
                 setShowConfirmModal(true);
                 
