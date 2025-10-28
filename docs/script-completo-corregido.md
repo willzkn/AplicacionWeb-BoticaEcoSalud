@@ -1,3 +1,4 @@
+
 -- ==================================================================================
 -- SCRIPT COMPLETO CORREGIDO - BOTICA ECOSALUD 
 -- RECUERDA QUE SIN ESTE SCRIPT Y XAMPP INICIALIZADO SPRING NO PODRA INICIALIZARSE
