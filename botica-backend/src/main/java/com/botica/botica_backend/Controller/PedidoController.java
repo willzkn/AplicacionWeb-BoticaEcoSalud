@@ -30,6 +30,18 @@ public class PedidoController {
         }
     }
 
+    @PostMapping("/{id}/confirmacion")
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER", "cliente", "Admin", "admin", "Cliente", "client"})
+    public ResponseEntity<?> enviarConfirmacion(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String boletaPdfBase64 = body != null ? body.get("boletaPdfBase64") : null;
+            pedidoService.enviarConfirmacionPedido(id, boletaPdfBase64);
+            return ResponseEntity.ok(Map.of("message", "Confirmación enviada"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Crear pedido desde el carrito del usuario (con productos del frontend)
     @PostMapping("/crear-desde-carrito")
     public ResponseEntity<?> crearPedidoDesdeCarrito(@RequestBody PedidoService.PedidoRequest pedidoRequest) {

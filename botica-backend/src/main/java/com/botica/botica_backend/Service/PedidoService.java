@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,7 @@ public class PedidoService {
     private final UsuarioRepository usuarioRepository;
     private final MetodoPagoRepository metodoPagoRepository;
     private final CarritoRepository carritoRepository;
+    private final EmailService emailService;
 
     /**
      * Crear un nuevo pedido con sus detalles
@@ -82,6 +84,48 @@ public class PedidoService {
         pedido.setDetalles(detalles);
         
         return pedido;
+    }
+
+    public void enviarConfirmacionPedido(Long idPedido, String boletaPdfBase64) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        Usuario usuario = pedido.getUsuario();
+        if (usuario == null || usuario.getEmail() == null || usuario.getEmail().isBlank()) {
+            throw new RuntimeException("El pedido no tiene un email de destinatario válido");
+        }
+
+        String nombreDestinatario = Optional.ofNullable(usuario.getNombres())
+                .filter(n -> !n.isBlank())
+                .orElse(usuario.getEmail());
+
+        byte[] boletaPdf = null;
+        if (boletaPdfBase64 != null && !boletaPdfBase64.isBlank()) {
+            try {
+                boletaPdf = Base64.getDecoder().decode(boletaPdfBase64);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("El PDF de la boleta tiene un formato inválido", e);
+            }
+        }
+
+        double total = Optional.ofNullable(pedido.getTotal()).orElse(0.0);
+
+        if (boletaPdf != null && boletaPdf.length > 0) {
+            emailService.enviarConfirmacionPedidoConBoleta(
+                    usuario.getEmail(),
+                    nombreDestinatario,
+                    pedido.getIdPedido(),
+                    total,
+                    boletaPdf
+            );
+        } else {
+            emailService.enviarConfirmacionPedido(
+                    usuario.getEmail(),
+                    nombreDestinatario,
+                    pedido.getIdPedido(),
+                    total
+            );
+        }
     }
 
     /**

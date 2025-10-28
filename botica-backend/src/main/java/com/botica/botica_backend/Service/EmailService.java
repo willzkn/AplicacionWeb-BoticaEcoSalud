@@ -81,25 +81,30 @@ public class EmailService {
     }
 
     public void enviarConfirmacionPedido(String destinatario, String nombre, Long idPedido, double total) {
-        String subject = "Confirmación de pedido #" + idPedido + " - EcoSalud";
-        String body = String.format("""
-                    <p style='margin:0 0 16px;'>Hola %s,</p>
-                    <p style='margin:0 0 16px;'>Hemos recibido tu pedido y se encuentra en preparación.</p>
-                    <div style='border:1px solid #E2E8F5;border-radius:12px;padding:20px;margin:0 0 24px;background-color:#F8FBFF;'>
-                        <p style='margin:0 0 8px;'><span style='color:%s;font-weight:600;'>Número de pedido:</span> #%d</p>
-                        <p style='margin:0;'><span style='color:%s;font-weight:600;'>Total:</span> S/. %.2f</p>
-                    </div>
-                    <p style='margin:0;'>Te enviaremos una actualización cuando el pedido salga a reparto.</p>
-                """, nombre, PRIMARY_COLOR, idPedido, PRIMARY_COLOR, total);
-        String html = buildEmailTemplate("Confirmación de pedido", body);
-        String text = String.format("Pedido #%d confirmado. Total: S/. %.2f", idPedido, total);
         try {
             Attachment boletaAdjunta = cargarBoletaConstancia(idPedido);
-            enviarConAdjuntos(destinatario, nombre, subject, text, html, List.of(boletaAdjunta));
+            enviarConfirmacionPedidoInterno(destinatario, nombre, idPedido, total, boletaAdjunta);
         } catch (IOException e) {
             log.error("No se pudo adjuntar la boleta para el pedido {}: {}", idPedido, e.getMessage(), e);
-            enviar(destinatario, nombre, subject, text, html);
+            enviarConfirmacionPedidoInterno(destinatario, nombre, idPedido, total, null);
         }
+    }
+
+    public void enviarConfirmacionPedidoConBoleta(String destinatario,
+                                                  String nombre,
+                                                  Long idPedido,
+                                                  double total,
+                                                  byte[] boletaPdf) {
+        if (boletaPdf == null || boletaPdf.length == 0) {
+            enviarConfirmacionPedido(destinatario, nombre, idPedido, total);
+            return;
+        }
+
+        Attachment attachment = new Attachment(
+                buildBoletaFilename(idPedido),
+                new ByteArrayResource(boletaPdf, "Boleta EcoSalud generada")
+        );
+        enviarConfirmacionPedidoInterno(destinatario, nombre, idPedido, total, attachment);
     }
 
     public void enviarRecuperacionPassword(String destinatario, String nombre, String token) {
@@ -193,6 +198,28 @@ public class EmailService {
         }
     }
 
+    private void enviarConfirmacionPedidoInterno(String destinatario,
+                                                String nombre,
+                                                Long idPedido,
+                                                double total,
+                                                Attachment attachment) {
+        String subject = "Confirmación de pedido #" + idPedido + " - EcoSalud";
+        String body = String.format("""
+                    <p style='margin:0 0 16px;'>Hola %s,</p>
+                    <p style='margin:0 0 16px;'>Hemos recibido tu pedido y se encuentra en preparación.</p>
+                    <div style='border:1px solid #E2E8F5;border-radius:12px;padding:20px;margin:0 0 24px;background-color:#F8FBFF;'>
+                        <p style='margin:0 0 8px;'><span style='color:%s;font-weight:600;'>Número de pedido:</span> #%d</p>
+                        <p style='margin:0;'><span style='color:%s;font-weight:600;'>Total:</span> S/. %.2f</p>
+                    </div>
+                    <p style='margin:0;'>Te enviaremos una actualización cuando el pedido salga a reparto.</p>
+                """, nombre, PRIMARY_COLOR, idPedido, PRIMARY_COLOR, total);
+        String html = buildEmailTemplate("Confirmación de pedido", body);
+        String text = String.format("Pedido #%d confirmado. Total: S/. %.2f", idPedido, total);
+
+        List<Attachment> attachments = attachment != null ? List.of(attachment) : null;
+        enviarConAdjuntos(destinatario, nombre, subject, text, html, attachments);
+    }
+
     private Attachment cargarBoletaConstancia(Long idPedido) throws IOException {
         Resource resource = resourceLoader.getResource(boletaTemplate);
         if (!resource.exists()) {
@@ -200,8 +227,11 @@ public class EmailService {
         }
 
         byte[] bytes = resource.getInputStream().readAllBytes();
-        String filename = String.format("Boleta_%s.pdf", idPedido != null ? idPedido : LocalDate.now());
-        return new Attachment(filename, new ByteArrayResource(bytes, "Boleta EcoSalud"));
+        return new Attachment(buildBoletaFilename(idPedido), new ByteArrayResource(bytes, "Boleta EcoSalud"));
+    }
+
+    private String buildBoletaFilename(Long idPedido) {
+        return String.format("Boleta_%s.pdf", idPedido != null ? idPedido : LocalDate.now());
     }
 
     private String buildEmailTemplate(String headline, String innerHtml) {
