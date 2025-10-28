@@ -172,6 +172,12 @@
             <artifactId>guava</artifactId>
             <version>32.1.3-jre</version>
         </dependency>
+
+        <!-- Spring Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
     </dependencies>
 
     <profiles>
