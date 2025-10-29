@@ -270,6 +270,38 @@ function CarritoView() {
             yPos += 5;
             doc.text('Botica EcoSalud - Cuidando tu salud naturalmente', pageWidth / 2, yPos, { align: 'center' });
             
+            const qrPath = process.env.PUBLIC_URL + '/assets/QR.png';
+                const qrImg = new Image();
+                qrImg.src = qrPath;
+
+                await new Promise((resolve) => {
+                qrImg.onload = resolve;
+                qrImg.onerror = () => {
+                    console.warn("No se pudo cargar el QR");
+                    resolve();
+                };
+                });
+
+                // 🔹 Obtener dimensiones de la página
+                const pageHeight = doc.internal.pageSize.getHeight();
+
+                // 🔹 Agregar QR (abajo a la izquierda)
+                if (qrImg.complete && qrImg.naturalHeight !== 0) {
+                // Ajusta las coordenadas y tamaño según necesites
+                const qrWidth = 30;
+                const qrHeight = 30;
+                const marginLeft = 10;
+                const marginBottom = 10;
+
+                doc.addImage(
+                    qrImg,
+                    "PNG",
+                    marginLeft,
+                    pageHeight - qrHeight - marginBottom,
+                    qrWidth,
+                    qrHeight
+                );
+                }
             // Guardar PDF
             const fileName = `Boleta_${pedido.idPedido || Date.now()}.pdf`;
             const dataUriString = doc.output('datauristring');
