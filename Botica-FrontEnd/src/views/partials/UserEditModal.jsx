@@ -10,12 +10,14 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
     direccion: '',
     rol: 'USER',
     activo: true,
-    password: '' // Solo para creación
+    password: '', // Solo para creación
+    imagen: '' // Imagen de perfil
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -30,8 +32,10 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
           direccion: user.direccion || '',
           rol: user.rol || 'USER',
           activo: user.activo !== false,
-          password: '' // No mostrar contraseña existente
+          password: '', // No mostrar contraseña existente
+          imagen: user.imagen || ''
         });
+        setImagePreview(user.imagen || null);
         setShowPassword(false);
       } else {
         // Modo creación
@@ -43,8 +47,10 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
           direccion: '',
           rol: 'USER',
           activo: true,
-          password: ''
+          password: '',
+          imagen: ''
         });
+        setImagePreview(null);
         setShowPassword(true);
       }
       setError('');
@@ -57,6 +63,47 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor selecciona un archivo de imagen válido');
+      return;
+    }
+
+    // Validar tamaño (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede ser mayor a 5MB');
+      return;
+    }
+
+    // Convertir a base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      setFormData(prev => ({
+        ...prev,
+        imagen: base64
+      }));
+      setImagePreview(base64);
+      setError(''); // Limpiar error si había
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      imagen: ''
+    }));
+    setImagePreview(null);
+    // Limpiar el input file
+    const fileInput = document.getElementById('imagen');
+    if (fileInput) fileInput.value = '';
   };
 
   const handleSubmit = async (e) => {
@@ -266,6 +313,86 @@ export default function UserEditModal({ isOpen, onClose, user, onSave }) {
             className="form-input"
             placeholder="Dirección completa del usuario"
           />
+        </div>
+
+        {/* Sección de imagen de perfil */}
+        <div className="form-group">
+          <label>Imagen de Perfil</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '2px solid #ddd',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f5f5f5'
+            }}>
+              {imagePreview ? (
+                <img 
+                  src={imagePreview} 
+                  alt="Vista previa" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <span style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                  Sin imagen
+                </span>
+              )}
+            </div>
+            
+            <div style={{ flex: 1 }}>
+              <input
+                type="file"
+                id="imagen"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
+              />
+              
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button 
+                  type="button"
+                  onClick={() => document.getElementById('imagen').click()}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Seleccionar Imagen
+                </button>
+                
+                {imagePreview && (
+                  <button 
+                    type="button"
+                    onClick={removeImage}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Quitar Imagen
+                  </button>
+                )}
+              </div>
+              
+              <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Formatos: JPG, PNG, GIF, WebP. Máximo 5MB.
+              </small>
+            </div>
+          </div>
         </div>
 
         <div className="form-group">

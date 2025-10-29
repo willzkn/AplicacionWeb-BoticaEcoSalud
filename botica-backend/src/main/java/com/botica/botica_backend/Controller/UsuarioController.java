@@ -1,13 +1,16 @@
 package com.botica.botica_backend.Controller;
 
 import com.botica.botica_backend.Model.Usuario;
+import com.botica.botica_backend.DTO.PerfilUsuarioDTO;
 import com.botica.botica_backend.Service.UsuarioService;
+import com.botica.botica_backend.Service.ImagenService;
 import com.botica.botica_backend.Security.RoleBasedAccessControl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,7 @@ public class UsuarioController {
 
     private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
     private final UsuarioService usuarioService;
+    private final ImagenService imagenService;
 
     @GetMapping("/all")
     @RoleBasedAccessControl(allowedRoles = {"ADMIN"})
@@ -123,12 +127,138 @@ public class UsuarioController {
         try {
             String token = body.get("token");
             String nuevaPassword = body.get("nuevaPassword");
+            
+            logger.info("Intento de restablecimiento de contraseña con token: {}", token != null ? "***" : "null");
+            
+            if (token == null || token.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Token es requerido");
+            }
+            
+            if (nuevaPassword == null || nuevaPassword.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Nueva contraseña es requerida");
+            }
+            
+            if (nuevaPassword.length() < 6) {
+                return ResponseEntity.badRequest().body("La contraseña debe tener al menos 6 caracteres");
+            }
+            
             usuarioService.restablecerPasswordConToken(token, nuevaPassword);
+            logger.info("Contraseña restablecida exitosamente");
             return ResponseEntity.ok("Contraseña actualizada exitosamente");
         } catch (IllegalArgumentException e) {
+            logger.error("Error de validación al restablecer contraseña: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al restablecer contraseña");
+            logger.error("Error inesperado al restablecer contraseña", e);
+            return ResponseEntity.internalServerError().body("Error al restablecer contraseña: " + e.getMessage());
+        }
+    }
+
+    // =====================================================
+    // ENDPOINTS DE PERFIL DE USUARIO
+    // =====================================================
+
+    // Obtener perfil del usuario
+    @GetMapping("/{id}/perfil")
+    public ResponseEntity<?> obtenerPerfil(@PathVariable Long id) {
+        try {
+            Optional<Usuario> usuarioOpt = usuarioService.findById(id);
+            if (usuarioOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Usuario usuario = usuarioOpt.get();
+            
+            // Convertir a DTO
+            PerfilUsuarioDTO perfil = new PerfilUsuarioDTO();
+            perfil.setIdUsuario(usuario.getIdUsuario());
+            perfil.setNombres(usuario.getNombres());
+            perfil.setApellidos(usuario.getApellidos());
+            perfil.setEmail(usuario.getEmail());
+            perfil.setTelefono(usuario.getTelefono());
+            perfil.setDireccion(usuario.getDireccion());
+            
+            // Procesar imagen
+            perfil.setImagen(imagenService.obtenerImagenUsuario(usuario.getImagen()));
+
+            logger.info("Perfil obtenido para usuario ID: {}", id);
+            return ResponseEntity.ok(perfil);
+            
+        } catch (Exception e) {
+            logger.error("Error al obtener perfil del usuario {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al obtener perfil");
+        }
+    }
+
+    // Actualizar perfil del usuario
+    @PutMapping("/{id}/perfil")
+    public ResponseEntity<?> actualizarPerfil(@PathVariable Long id, @RequestBody PerfilUsuarioDTO perfilDTO) {
+        try {
+            // Verificar que el usuario existe
+            Optional<Usuario> usuarioOpt = usuarioService.findById(id);
+            if (usuarioOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Usuario usuario = usuarioOpt.get();
+
+            // Validar imagen si se proporciona
+            if (perfilDTO.getImagen() != null && !perfilDTO.getImagen().trim().isEmpty()) {
+                if (!imagenService.esImagenValida(perfilDTO.getImagen())) {
+                    return ResponseEntity.badRequest().body("La imagen proporcionada no es válida");
+                }
+            }
+
+            // Validar cambio de contraseña si se solicita
+            if (perfilDTO.getNuevaPassword() != null && !perfilDTO.getNuevaPassword().trim().isEmpty()) {
+                if (perfilDTO.getConfirmarPassword() == null || 
+                    !perfilDTO.getNuevaPassword().equals(perfilDTO.getConfirmarPassword())) {
+                    return ResponseEntity.badRequest().body("Las contraseñas no coinciden");
+                }
+                
+                if (perfilDTO.getNuevaPassword().length() < 6) {
+                    return ResponseEntity.badRequest().body("La contraseña debe tener al menos 6 caracteres");
+                }
+            }
+
+            // Actualizar datos básicos
+            usuario.setNombres(perfilDTO.getNombres());
+            usuario.setApellidos(perfilDTO.getApellidos());
+            usuario.setTelefono(perfilDTO.getTelefono());
+            usuario.setDireccion(perfilDTO.getDireccion());
+
+            // Actualizar imagen si se proporciona
+            if (perfilDTO.getImagen() != null && !perfilDTO.getImagen().trim().isEmpty()) {
+                usuario.setImagen(imagenService.normalizarImagen(perfilDTO.getImagen()));
+            }
+
+            // Cambiar contraseña si se solicita
+            if (perfilDTO.getNuevaPassword() != null && !perfilDTO.getNuevaPassword().trim().isEmpty()) {
+                usuarioService.cambiarPassword(id, perfilDTO.getNuevaPassword());
+            }
+
+            // Guardar cambios
+            Usuario actualizado = usuarioService.actualizarUsuario(usuario);
+
+            // Preparar respuesta
+            PerfilUsuarioDTO respuesta = new PerfilUsuarioDTO();
+            respuesta.setIdUsuario(actualizado.getIdUsuario());
+            respuesta.setNombres(actualizado.getNombres());
+            respuesta.setApellidos(actualizado.getApellidos());
+            respuesta.setEmail(actualizado.getEmail());
+            respuesta.setTelefono(actualizado.getTelefono());
+            respuesta.setDireccion(actualizado.getDireccion());
+            respuesta.setImagen(imagenService.obtenerImagenUsuario(actualizado.getImagen()));
+
+            logger.info("Perfil actualizado para usuario ID: {}", id);
+            return ResponseEntity.ok(respuesta);
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Error de validación al actualizar perfil: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error al actualizar perfil del usuario {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al actualizar perfil");
         }
     }
 

@@ -269,7 +269,7 @@ export default function UsersPage() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Email</th>
+                <th>Usuario</th>
                 <th>Nombre Completo</th>
                 <th>Teléfono</th>
                 <th>Rol</th>
@@ -290,8 +290,32 @@ export default function UsersPage() {
                 <tr key={u.idUsuario} className={!u.activo ? 'row-inactive' : ''}>
                   <td>{u.idUsuario}</td>
                   <td>
-                    <div>
-                      <strong>{u.email}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid #ddd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f5f5f5',
+                        flexShrink: 0
+                      }}>
+                        {u.imagen ? (
+                          <img 
+                            src={u.imagen} 
+                            alt="Perfil" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#666' }}>👤</span>
+                        )}
+                      </div>
+                      <div>
+                        <strong>{u.email}</strong>
+                      </div>
                     </div>
                   </td>
                   <td>
