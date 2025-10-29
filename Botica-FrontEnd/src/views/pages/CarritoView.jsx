@@ -1,4 +1,5 @@
 // src/views/pages/CarritoView.jsx
+// src/views/pages/CarritoView.jsx
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -257,10 +258,32 @@ function CarritoView() {
             doc.line(10, yPos, pageWidth - 10, yPos);
             yPos += 8;
             
-            // Total
+            // Subtotal, IGV y Total
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            
+            // Subtotal
+            const subtotalValue = pedido.total || total;
+            doc.text('Subtotal:', pageWidth - 80, yPos);
+            doc.text(`S/. ${subtotalValue.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            yPos += 6;
+            
+            // IGV (18%)
+            const igvValue = subtotalValue * 0.18;
+            doc.text('IGV (18%):', pageWidth - 80, yPos);
+            doc.text(`S/. ${igvValue.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            yPos += 6;
+            
+            // Línea antes del total final
+            doc.setLineWidth(0.2);
+            doc.line(pageWidth - 80, yPos, pageWidth - 10, yPos);
+            yPos += 4;
+            
+            // Total Final
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text(`TOTAL: S/. ${(pedido.total || total).toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            const totalConIGV = subtotalValue + igvValue;
+            doc.text(`TOTAL: S/. ${totalConIGV.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
             
             // Pie de página
             yPos += 15;
@@ -269,39 +292,29 @@ function CarritoView() {
             doc.text('¡Gracias por su compra!', pageWidth / 2, yPos, { align: 'center' });
             yPos += 5;
             doc.text('Botica EcoSalud - Cuidando tu salud naturalmente', pageWidth / 2, yPos, { align: 'center' });
-            
-            const qrPath = process.env.PUBLIC_URL + '/assets/QR.png';
-                const qrImg = new Image();
-                qrImg.src = qrPath;
 
-                await new Promise((resolve) => {
+            // Añadir QR al pie de página
+            yPos += 10;
+            const qrPath = `${process.env.PUBLIC_URL}/assets/QR.png`;
+            const qrImg = new Image();
+            qrImg.src = qrPath;
+            
+            await new Promise((resolve) => {
                 qrImg.onload = resolve;
                 qrImg.onerror = () => {
-                    console.warn("No se pudo cargar el QR");
+                    console.warn('No se pudo cargar el QR');
                     resolve();
                 };
-                });
-
-                // 🔹 Obtener dimensiones de la página
-                const pageHeight = doc.internal.pageSize.getHeight();
-
-                // 🔹 Agregar QR (abajo a la izquierda)
-                if (qrImg.complete && qrImg.naturalHeight !== 0) {
-                // Ajusta las coordenadas y tamaño según necesites
-                const qrWidth = 30;
-                const qrHeight = 30;
-                const marginLeft = 10;
-                const marginBottom = 10;
-
-                doc.addImage(
-                    qrImg,
-                    "PNG",
-                    marginLeft,
-                    pageHeight - qrHeight - marginBottom,
-                    qrWidth,
-                    qrHeight
-                );
-                }
+            });
+            
+            // Agregar QR centrado
+            if (qrImg.complete && qrImg.naturalHeight !== 0) {
+                const qrSize = 30; // tamaño del QR en el PDF
+                const qrX = (pageWidth - qrSize) / 2;
+                doc.addImage(qrImg, 'PNG', qrX, yPos, qrSize, qrSize);
+            }
+            
+            
             // Guardar PDF
             const fileName = `Boleta_${pedido.idPedido || Date.now()}.pdf`;
             const dataUriString = doc.output('datauristring');
