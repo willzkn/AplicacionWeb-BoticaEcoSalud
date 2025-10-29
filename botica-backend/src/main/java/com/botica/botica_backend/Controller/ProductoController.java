@@ -161,8 +161,11 @@ public class ProductoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
         try {
-            productoService.eliminarProducto(id);
-            return ResponseEntity.ok("Producto eliminado correctamente");
+            boolean eliminado = productoService.eliminarProducto(id);
+            if (eliminado) {
+                return ResponseEntity.ok("Producto eliminado correctamente");
+            }
+            return ResponseEntity.status(409).body("El producto tiene registros asociados. Se desactivó en lugar de eliminarse.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {

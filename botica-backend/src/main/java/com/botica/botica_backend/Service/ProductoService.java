@@ -134,7 +134,7 @@ public class ProductoService {
 
     // DELETE (Hard delete)
     @Transactional
-    public void eliminarProducto(Long idProducto) {
+    public boolean eliminarProducto(Long idProducto) {
         Optional<Producto> producto = productoRepository.findById(idProducto);
         if (producto.isEmpty()) {
             throw new IllegalArgumentException("Producto no encontrado");
@@ -144,12 +144,13 @@ public class ProductoService {
         // Si está en uso, solo desactivar; si no, eliminar completamente
         try {
             productoRepository.deleteById(idProducto);
+            return true;
         } catch (Exception e) {
             // Si hay error por restricciones de FK, hacer soft delete
             Producto p = producto.get();
             p.setActivo(false);
             productoRepository.save(p);
-            throw new IllegalArgumentException("No se puede eliminar el producto porque está en uso. Se ha desactivado en su lugar.");
+            return false;
         }
     }
 

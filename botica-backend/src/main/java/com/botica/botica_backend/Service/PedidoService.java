@@ -169,6 +169,9 @@ public class PedidoService {
                 .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
         
         pedido.setEstado(nuevoEstado);
+        if (nuevoEstado != null && nuevoEstado.equalsIgnoreCase("COMPLETADO")) {
+            pedido.setFechaPedido(LocalDate.now());
+        }
         return pedidoRepository.save(pedido);
     }
 
@@ -189,9 +192,14 @@ public class PedidoService {
         stats.setPedidosCompletados(pedidoRepository.countByEstado("COMPLETADO"));
         stats.setPedidosCancelados(pedidoRepository.countByEstado("CANCELADO"));
         
-        // Ventas del día
-        Double ventasHoy = pedidoRepository.getTotalVentasPorFecha(LocalDate.now());
-        stats.setVentasHoy(ventasHoy != null ? ventasHoy : 0.0);
+        // Ventas del día (pedidos completados en la fecha actual)
+        LocalDate hoy = LocalDate.now();
+        List<Pedido> pedidosHoy = pedidoRepository.findByFechaPedidoBetweenOrderByFechaPedidoDesc(hoy, hoy);
+        double ventasHoy = pedidosHoy.stream()
+                .filter(p -> p.getEstado() != null && p.getEstado().equalsIgnoreCase("COMPLETADO"))
+                .mapToDouble(p -> p.getTotal() != null ? p.getTotal() : 0.0)
+                .sum();
+        stats.setVentasHoy(ventasHoy);
         
         return stats;
     }
