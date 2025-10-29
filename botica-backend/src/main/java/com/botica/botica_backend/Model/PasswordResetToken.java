@@ -17,17 +17,17 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, name = "token")
     private String token;
     
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
     
-    @Column(nullable = false)
+    @Column(name = "fecha_expiracion", nullable = false)
     private LocalDateTime fechaExpiracion;
     
-    @Column(nullable = false)
+    @Column(nullable = false, name = "usado")
     private Boolean usado = false;
 
     // Manual getters and setters as fallback

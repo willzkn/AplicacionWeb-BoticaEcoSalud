@@ -121,8 +121,11 @@ CREATE TABLE password_reset_tokens (
     token VARCHAR(255) NOT NULL UNIQUE,
     id_usuario BIGINT NOT NULL,
     fecha_expiracion DATETIME NOT NULL,
-    usado BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
+    usado TINYINT(1) NOT NULL DEFAULT 0,
+    CONSTRAINT fk_password_reset_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuarios (id_usuario)
+        ON DELETE CASCADE
 );
 
 -- =====================================================
