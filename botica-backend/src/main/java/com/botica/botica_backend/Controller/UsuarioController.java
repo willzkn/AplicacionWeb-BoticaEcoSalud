@@ -102,9 +102,17 @@ public class UsuarioController {
     public ResponseEntity<?> solicitarRecuperacion(@RequestBody Map<String, String> body) {
         try {
             String email = body.get("email");
-            usuarioService.solicitarRecuperacionPassword(email);
-            return ResponseEntity.ok("Si el email existe, recibirás un enlace de recuperación");
+            boolean enviado = usuarioService.solicitarRecuperacionPassword(email);
+
+            if (!enviado) {
+                logger.warn("Solicitud de recuperación ignorada: email no registrado - {}", email);
+                return ResponseEntity.status(404).body("El correo electrónico no está registrado");
+            }
+
+            logger.info("Solicitud de recuperación procesada para {}", email);
+            return ResponseEntity.ok("Si el correo existe, recibirás un enlace de recuperación en tu bandeja de entrada.");
         } catch (Exception e) {
+            logger.error("Error al procesar solicitud de recuperación", e);
             return ResponseEntity.internalServerError().body("Error al procesar solicitud");
         }
     }

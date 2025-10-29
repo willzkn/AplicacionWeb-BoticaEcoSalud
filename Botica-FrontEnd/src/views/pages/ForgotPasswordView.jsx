@@ -31,8 +31,11 @@ function ForgotPasswordView() {
       if (response.ok) {
         setMessage('✅ Si el correo existe, recibirás un enlace de recuperación en tu bandeja de entrada.');
         setEmail('');
+      } else if (response.status === 404) {
+        setMessage('❌ El correo electrónico no está registrado.');
       } else {
-        setMessage('❌ Error al procesar la solicitud. Intenta nuevamente.');
+        const errorText = await response.text();
+        setMessage(`❌ ${errorText || 'Error al procesar la solicitud. Intenta nuevamente.'}`);
       }
     } catch (error) {
       console.error(error);

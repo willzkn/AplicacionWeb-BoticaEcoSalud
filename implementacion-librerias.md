@@ -23,6 +23,8 @@ Este documento describe las arquitecturas de librerías seleccionadas para el pr
 - Alertas de stock bajo
 - Registro de errores de integración con proveedores
 
+**Archivo principal:** `botica-backend/src/main/resources/logback.xml`
+
 ### 2. Google Guava (Arquitectura de Utilidades)
 
 **Versión:** 32.1.3-jre  
@@ -41,6 +43,10 @@ Este documento describe las arquitecturas de librerías seleccionadas para el pr
 - Partición de listas para paginación
 - Cache de categorías y proveedores
 - Validación de formatos de archivos
+
+**Clases relacionadas:**
+- `botica-backend/src/main/java/com/botica/botica_backend/Util/StringUtilGuavaCommons.java`
+- `botica-backend/src/main/java/com/botica/botica_backend/Util/FileUtilGuavaCommons.java`
 
 ### 3. Apache POI (Arquitectura de Documentos Office)
 
@@ -61,6 +67,8 @@ Este documento describe las arquitecturas de librerías seleccionadas para el pr
 - Generación de listas de compras
 - Reportes de productos próximos a vencer
 
+**Clase relacionada:** `botica-backend/src/main/java/com/botica/botica_backend/Util/ExcelUtilPoi.java`
+
 ### 4. Apache Commons (Arquitectura de Utilidades Comunes)
 
 **Versión:** Lang3 3.13.0, IO 2.11.0, Collections4 4.4  
@@ -79,6 +87,10 @@ Este documento describe las arquitecturas de librerías seleccionadas para el pr
 - Normalización de direcciones
 - Procesamiento de archivos de backup
 - Validación de emails de proveedores
+
+**Clases relacionadas:**
+- `botica-backend/src/main/java/com/botica/botica_backend/Util/StringUtilGuavaCommons.java`
+- `botica-backend/src/main/java/com/botica/botica_backend/Util/FileUtilGuavaCommons.java`
 
 ## Beneficios de las Arquitecturas
 

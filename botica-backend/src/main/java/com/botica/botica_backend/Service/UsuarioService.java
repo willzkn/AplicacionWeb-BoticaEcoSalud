@@ -157,13 +157,13 @@ public class UsuarioService {
      * Solicitar recuperación de contraseña - Genera token y envía email
      */
     @Transactional
-    public void solicitarRecuperacionPassword(String email) {
+    public boolean solicitarRecuperacionPassword(String email) {
         // Buscar usuario por email
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
         
         if (usuarioOpt.isEmpty()) {
             // Por seguridad, no revelamos si el email existe o no
-            return;
+            return false;
         }
         
         Usuario usuario = usuarioOpt.get();
@@ -189,8 +189,10 @@ public class UsuarioService {
                 usuario.getNombres(),
                 token
             );
+            return true;
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar email de recuperación");
+            // No hacemos fallar el flujo: registramos el error pero no exponemos detalles
+            throw new RuntimeException("Error al enviar email de recuperación", e);
         }
     }
 
