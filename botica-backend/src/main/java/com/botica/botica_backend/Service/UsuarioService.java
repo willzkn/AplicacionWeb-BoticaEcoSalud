@@ -22,6 +22,7 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final PasswordResetTokenRepository tokenRepository;
+    private final ImagenService imagenService;
 
     // Read
     public List<Usuario> getUsuarios() {
@@ -54,6 +55,15 @@ public class UsuarioService {
         // Hashear la contraseña antes de guardar
         String passwordHasheada = passwordEncoder.encode(usuario.getPassword());
         usuario.setPassword(passwordHasheada);
+        
+        // Procesar imagen de perfil
+        if (usuario.getImagen() != null && !usuario.getImagen().trim().isEmpty()) {
+            if (imagenService.esImagenValida(usuario.getImagen())) {
+                usuario.setImagen(imagenService.normalizarImagen(usuario.getImagen()));
+            } else {
+                throw new IllegalArgumentException("La imagen proporcionada no es válida");
+            }
+        }
 
         // Asignar valores por defecto que pueden faltar
         usuario.setActivo(true);
@@ -223,6 +233,50 @@ public class UsuarioService {
         // Marcar token como usado
         resetToken.setUsado(true);
         tokenRepository.save(resetToken);
+    }
+
+    // =====================================================
+    // MÉTODOS DE PERFIL DE USUARIO
+    // =====================================================
+
+    /**
+     * Actualizar perfil de usuario (sin cambiar email ni rol)
+     */
+    @Transactional
+    public Usuario actualizarPerfil(Long idUsuario, String nombres, String apellidos, 
+                                   String telefono, String direccion, String imagen) {
+        // Verificar que el usuario existe
+        Optional<Usuario> existente = usuarioRepository.findById(idUsuario);
+        if (existente.isEmpty()) {
+            throw new IllegalArgumentException("Usuario no encontrado");
+        }
+
+        Usuario usuario = existente.get();
+        
+        // Validaciones básicas
+        if (nombres == null || nombres.trim().isEmpty()) {
+            throw new IllegalArgumentException("Los nombres son obligatorios");
+        }
+        if (apellidos == null || apellidos.trim().isEmpty()) {
+            throw new IllegalArgumentException("Los apellidos son obligatorios");
+        }
+
+        // Actualizar solo los campos permitidos en perfil
+        usuario.setNombres(nombres.trim());
+        usuario.setApellidos(apellidos.trim());
+        usuario.setTelefono(telefono != null ? telefono.trim() : null);
+        usuario.setDireccion(direccion != null ? direccion.trim() : null);
+        
+        // Procesar imagen si se proporciona
+        if (imagen != null && !imagen.trim().isEmpty()) {
+            if (imagenService.esImagenValida(imagen)) {
+                usuario.setImagen(imagenService.normalizarImagen(imagen));
+            } else {
+                throw new IllegalArgumentException("La imagen proporcionada no es válida");
+            }
+        }
+
+        return usuarioRepository.save(usuario);
     }
 
     // =====================================================

@@ -37,6 +37,10 @@ public class Usuario {
     @Column(unique = true)
     private String telefono;
     private String direccion;
+    
+    @Column(columnDefinition = "LONGTEXT")
+    private String imagen; // Base64 de la imagen de perfil
+    
     private String rol;
     private Boolean activo;
     @Column(name = "fecha_registro")
@@ -66,6 +70,9 @@ public class Usuario {
     
     public String getDireccion() { return direccion; }
     public void setDireccion(String direccion) { this.direccion = direccion; }
+    
+    public String getImagen() { return imagen; }
+    public void setImagen(String imagen) { this.imagen = imagen; }
     
     public String getRol() { return rol; }
     public void setRol(String rol) { this.rol = rol; }
