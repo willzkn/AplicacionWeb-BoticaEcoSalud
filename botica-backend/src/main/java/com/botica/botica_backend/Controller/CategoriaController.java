@@ -142,16 +142,16 @@ public class CategoriaController {
             List<Categoria> categorias = categoriaService.listarTodas();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Nombre,Descripcion,Estado,Fecha_Creacion,Productos_Count\n");
+            csv.append("ID;Nombre;Descripcion;Estado;Fecha_Creacion;Productos_Count\n");
             
             for (Categoria c : categorias) {
                 Long productosCount = categoriaService.contarProductosPorCategoria(c.getIdCategoria());
-                
-                csv.append(c.getIdCategoria()).append(",");
-                csv.append("\"").append(c.getNombre() != null ? c.getNombre() : "Sin nombre").append("\",");
-                csv.append("\"").append(c.getDescripcion() != null ? c.getDescripcion().replace("\"", "\"\"") : "").append("\",");
-                csv.append("\"").append(c.getActivo() ? "ACTIVO" : "INACTIVO").append("\",");
-                csv.append("\"").append(c.getFechaCreacion() != null ? c.getFechaCreacion().toString() : "").append("\",");
+
+                csv.append(c.getIdCategoria()).append(";");
+                csv.append("\"").append(c.getNombre() != null ? c.getNombre() : "Sin nombre").append("\";");
+                csv.append("\"").append(c.getDescripcion() != null ? c.getDescripcion().replace("\"", "\"\"") : "").append("\";");
+                csv.append("\"").append(c.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
+                csv.append("\"").append(c.getFechaCreacion() != null ? c.getFechaCreacion().toString() : "").append("\";");
                 csv.append(productosCount);
                 csv.append("\n");
             }

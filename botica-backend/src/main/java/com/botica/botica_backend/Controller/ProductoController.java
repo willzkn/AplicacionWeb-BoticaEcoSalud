@@ -224,18 +224,18 @@ public class ProductoController {
             // StringUtilGuavaCommons stringUtilLocal = new StringUtilGuavaCommons();
 
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Codigo,Nombre,Descripcion,Precio,Stock,Categoria,Estado\n");
+            csv.append("ID;Codigo;Nombre;Descripcion;Precio;Stock;Categoria;Estado\n");
 
             for (Producto p : productos) {
-                csv.append(p.getIdProducto()).append(",");
-                csv.append("\"").append(p.getCodigo() != null ? p.getCodigo() : "").append("\",");
+                csv.append(p.getIdProducto()).append(";");
+                csv.append("\"").append(p.getCodigo() != null ? p.getCodigo() : "").append("\";");
                 csv.append("\"").append(p.getNombre() != null && !p.getNombre().trim().isEmpty() ? p.getNombre() : "Sin nombre")
-                        .append("\",");
-                csv.append("\"").append(p.getDescripcion() != null && p.getDescripcion().length() > 100 ? p.getDescripcion().substring(0, 100) : (p.getDescripcion() != null ? p.getDescripcion() : "")).append("\",");
-                csv.append(p.getPrecio()).append(",");
-                csv.append(p.getStock()).append(",");
+                        .append("\";");
+                csv.append("\"").append(p.getDescripcion() != null && p.getDescripcion().length() > 100 ? p.getDescripcion().substring(0, 100) : (p.getDescripcion() != null ? p.getDescripcion() : "")).append("\";");
+                csv.append(p.getPrecio()).append(";");
+                csv.append(p.getStock()).append(";");
                 csv.append("\"").append(p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin categoría")
-                        .append("\",");
+                        .append("\";");
                 csv.append("\"").append(p.getActivo() ? "ACTIVO" : "INACTIVO").append("\"");
                 csv.append("\n");
             }

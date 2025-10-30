@@ -147,18 +147,18 @@ public class ProveedorController {
             List<Proveedor> proveedores = proveedorService.getAllProveedores();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,RUC,Nombre_Comercial,Telefono,Correo,Persona_Contacto,Tipo_Producto,Condiciones_Pago,Estado,Fecha_Registro\n");
-            
+            csv.append("ID;RUC;Nombre_Comercial;Telefono;Correo;Persona_Contacto;Tipo_Producto;Condiciones_Pago;Estado;Fecha_Registro\n");
+
             for (Proveedor p : proveedores) {
-                csv.append(p.getIdProveedor()).append(",");
-                csv.append("\"").append(p.getRUC() != null ? p.getRUC() : "").append("\",");
-                csv.append("\"").append(p.getNombreComercial() != null ? p.getNombreComercial().replace("\"", "\"\"") : "").append("\",");
-                csv.append("\"").append(p.getTelefono() != null ? p.getTelefono() : "").append("\",");
-                csv.append("\"").append(p.getCorreo() != null ? p.getCorreo() : "").append("\",");
-                csv.append("\"").append(p.getPersonaContacto() != null ? p.getPersonaContacto().replace("\"", "\"\"") : "").append("\",");
-                csv.append("\"").append(p.getTipoProducto() != null ? p.getTipoProducto() : "").append("\",");
-                csv.append("\"").append(p.getCondicionesPago() != null ? p.getCondicionesPago() : "").append("\",");
-                csv.append("\"").append(p.getEstado() != null && p.getEstado() ? "ACTIVO" : "INACTIVO").append("\",");
+                csv.append(p.getIdProveedor()).append(";");
+                csv.append("\"").append(p.getRUC() != null ? p.getRUC() : "").append("\";");
+                csv.append("\"").append(p.getNombreComercial() != null ? p.getNombreComercial().replace("\"", "\"\"") : "").append("\";");
+                csv.append("\"").append(p.getTelefono() != null ? p.getTelefono() : "").append("\";");
+                csv.append("\"").append(p.getCorreo() != null ? p.getCorreo() : "").append("\";");
+                csv.append("\"").append(p.getPersonaContacto() != null ? p.getPersonaContacto().replace("\"", "\"\"") : "").append("\";");
+                csv.append("\"").append(p.getTipoProducto() != null ? p.getTipoProducto() : "").append("\";");
+                csv.append("\"").append(p.getCondicionesPago() != null ? p.getCondicionesPago() : "").append("\";");
+                csv.append("\"").append(p.getEstado() != null && p.getEstado() ? "ACTIVO" : "INACTIVO").append("\";");
                 csv.append("\"").append(p.getFechaRegistro() != null ? p.getFechaRegistro().toString() : "").append("\"");
                 csv.append("\n");
             }

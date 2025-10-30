@@ -120,16 +120,16 @@ public class PedidoController {
             List<Pedido> pedidos = pedidoService.obtenerTodosLosPedidos();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Usuario_Nombres,Usuario_Apellidos,Email_Usuario,Total,Estado,Metodo_Pago,Fecha_Pedido\n");
+            csv.append("ID;Usuario_Nombres;Usuario_Apellidos;Email_Usuario;Total;Estado;Metodo_Pago;Fecha_Pedido\n");
             
             for (Pedido p : pedidos) {
-                csv.append(p.getIdPedido()).append(",");
-                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres() : "") : "").append("\",");
-                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getApellidos() != null ? p.getUsuario().getApellidos() : "") : "").append("\",");
-                csv.append("\"").append(p.getUsuario() != null ? p.getUsuario().getEmail() : "").append("\",");
-                csv.append(p.getTotal() != null ? p.getTotal() : 0.0).append(",");
-                csv.append("\"").append(p.getEstado() != null ? p.getEstado() : "PENDIENTE").append("\",");
-                csv.append("\"").append(p.getMetodoPago() != null ? p.getMetodoPago().toString() : "").append("\",");
+                csv.append(p.getIdPedido()).append(";");
+                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres() : "") : "").append("\";");
+                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getApellidos() != null ? p.getUsuario().getApellidos() : "") : "").append("\";");
+                csv.append("\"").append(p.getUsuario() != null ? p.getUsuario().getEmail() : "").append("\";");
+                csv.append(p.getTotal() != null ? p.getTotal() : 0.0).append(";");
+                csv.append("\"").append(p.getEstado() != null ? p.getEstado() : "PENDIENTE").append("\";");
+                csv.append("\"").append(p.getMetodoPago() != null ? p.getMetodoPago().toString() : "").append("\";");
                 csv.append("\"").append(p.getFechaPedido() != null ? p.getFechaPedido().toString() : "").append("\"");
                 csv.append("\n");
             }

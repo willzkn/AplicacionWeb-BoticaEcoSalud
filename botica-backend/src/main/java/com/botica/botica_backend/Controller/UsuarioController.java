@@ -337,18 +337,18 @@ public class UsuarioController {
             List<Usuario> usuarios = usuarioService.getUsuarios();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Nombres,Apellidos,Email,Telefono,Direccion,Rol,Estado,Fecha_Registro\n");
-            
+            csv.append("ID;Nombres;Apellidos;Email;Telefono;Direccion;Rol;Estado;Fecha_Registro\n");
+
             for (Usuario u : usuarios) {
-                csv.append(u.getIdUsuario()).append(",");
-                csv.append("\"").append(u.getNombres() != null ? u.getNombres() : "").append("\",");
-                csv.append("\"").append(u.getApellidos() != null ? u.getApellidos() : "").append("\",");
-                csv.append("\"").append(u.getEmail() != null ? u.getEmail() : "").append("\",");
-                csv.append("\"").append(u.getTelefono() != null ? u.getTelefono() : "").append("\",");
-                csv.append("\"").append(u.getDireccion() != null ? u.getDireccion().replace("\"", "\"\"") : "").append("\",");
-                csv.append("\"").append(u.getRol() != null ? u.getRol() : "USER").append("\",");
-                csv.append("\"").append(u.getActivo() != null && u.getActivo() ? "ACTIVO" : "INACTIVO").append("\",");
-                csv.append("\"").append(u.getFechaRegistro() != null ? u.getFechaRegistro().toString() : "").append("\"");
+                csv.append(u.getIdUsuario()).append(";");
+                csv.append("\"").append(u.getNombres() != null ? u.getNombres() : "").append("\";");
+                csv.append("\"").append(u.getApellidos() != null ? u.getApellidos() : "").append("\";");
+                csv.append("\"").append(u.getEmail() != null ? u.getEmail() : "").append("\";");
+                csv.append("\"").append(u.getTelefono() != null ? u.getTelefono() : "").append("\";");
+                csv.append("\"").append(u.getDireccion() != null ? u.getDireccion().replace("\"", "\"\"") : "").append("\";");
+                csv.append("\"").append(u.getRol() != null ? u.getRol() : "USER").append("\";");
+                csv.append("\"").append(u.getActivo() != null && u.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
+                csv.append("\"").append(u.getFechaRegistro() != null ? u.getFechaRegistro().toString() : "").append("\";");
                 csv.append("\n");
             }
             
