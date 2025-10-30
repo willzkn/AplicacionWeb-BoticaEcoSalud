@@ -214,43 +214,55 @@ public class ProductoController {
     // EXPORTACIÓN Y REPORTES
     // =====================================================
 
-    // Exportar productos a CSV (alternativa funcional a Excel)
+    // Exportar productos a CSV (estilizado, sin logo ni nota; fecha tal cual)
     @GetMapping("/export/csv")
     public ResponseEntity<byte[]> exportarProductosCSV() {
         try {
             log.info("Iniciando exportación de productos a CSV");
 
             List<Producto> productos = productoService.listarTodos();
-            // StringUtilGuavaCommons stringUtilLocal = new StringUtilGuavaCommons();
 
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Codigo,Nombre,Descripcion,Precio,Stock,Categoria,Estado\n");
+            // Cabecera con nombre de la empresa y una línea en blanco
+            csv.append("EMPRESA: ECOSALUD").append("\n").append("\n");
+
+            // línea decorativa
+            csv.append("\"════════════════════════════════════════════════════════════════════════\"\n");
+
+            // Encabezado
+            csv.append("ID;Codigo;Nombre;Descripcion;Precio;Stock;Categoria;Estado;FECHA_CREACION\n");
 
             for (Producto p : productos) {
-                csv.append(p.getIdProducto()).append(",");
-                csv.append("\"").append(p.getCodigo() != null ? p.getCodigo() : "").append("\",");
-                csv.append("\"").append(p.getNombre() != null && !p.getNombre().trim().isEmpty() ? p.getNombre() : "Sin nombre")
-                        .append("\",");
-                csv.append("\"").append(p.getDescripcion() != null && p.getDescripcion().length() > 100 ? p.getDescripcion().substring(0, 100) : (p.getDescripcion() != null ? p.getDescripcion() : "")).append("\",");
-                csv.append(p.getPrecio()).append(",");
-                csv.append(p.getStock()).append(",");
-                csv.append("\"").append(p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin categoría")
-                        .append("\",");
-                csv.append("\"").append(p.getActivo() ? "ACTIVO" : "INACTIVO").append("\"");
+                csv.append(p.getIdProducto() != null ? p.getIdProducto() : "").append(";");
+                csv.append("\"").append(p.getCodigo() != null ? p.getCodigo().replace("\"","\"\"") : "").append("\";");
+                csv.append("\"").append(p.getNombre() != null && !p.getNombre().trim().isEmpty() ? p.getNombre().replace("\"","\"\"") : "Sin nombre").append("\";");
+                csv.append("\"").append(p.getDescripcion() != null ? (p.getDescripcion().length() > 100 ? p.getDescripcion().substring(0,100) : p.getDescripcion()).replace("\"","\"\"") : "").append("\";");
+                csv.append(p.getPrecio() != null ? p.getPrecio() : 0).append(";");
+                csv.append(p.getStock() != null ? p.getStock() : 0).append(";");
+                csv.append("\"").append(p.getCategoria() != null ? p.getCategoria().getNombre().replace("\"","\"\"") : "Sin categoría").append("\";");
+                csv.append("\"").append(p.getActivo() != null && p.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
+                String fechaStr = p.getFechaCreacion() != null ? p.getFechaCreacion().toString() : "";
+                csv.append("\"").append(fechaStr).append("\"");
                 csv.append("\n");
             }
 
-            byte[] csvBytes = csv.toString().getBytes();
+            // Resumen
+            csv.append("\n");
+            csv.append("\"────────────────────────── RESUMEN ──────────────────────────\"\n");
+            csv.append("TOTAL_PRODUCTOS;").append(productos.size()).append("\n");
+            csv.append("\n");
+
+            // Añadir BOM y usar UTF-8
+            byte[] csvBytes = ("\uFEFF" + csv.toString()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "productos_" + timestamp + ".csv";
+            String filename = "productos_estilizado_" + timestamp + ".csv";
 
-            log.info("CSV generado exitosamente: {}, {} productos, {} bytes", filename, productos.size(),
-                    csvBytes.length);
+            log.info("CSV generado exitosamente: {}, {} productos, {} bytes", filename, productos.size(), csvBytes.length);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
-                    .contentType(MediaType.TEXT_PLAIN)
+                    .header("Content-Type", "text/csv; charset=UTF-8")
                     .body(csvBytes);
 
         } catch (Exception e) {

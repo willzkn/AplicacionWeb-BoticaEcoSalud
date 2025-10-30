@@ -8,7 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -118,33 +122,81 @@ public class PedidoController {
     public ResponseEntity<byte[]> exportarPedidosCSV() {
         try {
             List<Pedido> pedidos = pedidoService.obtenerTodosLosPedidos();
-            
+
             StringBuilder csv = new StringBuilder();
-            csv.append("ID,Usuario_Nombres,Usuario_Apellidos,Email_Usuario,Total,Estado,Metodo_Pago,Fecha_Pedido\n");
-            
+
+            // Cabecera simple con nombre de la empresa y una línea en blanco
+            csv.append("EMPRESA: ECOSALUD").append("\n");
+            csv.append("\n");
+
+            // línea decorativa
+            csv.append("\"════════════════════════════════════════════════════════════════════════\"\n");
+
+            // Encabezado de columnas (mayúsculas, separador ;)
+            csv.append("ID;NOMBRES;APELLIDOS;EMAIL;TOTAL (S/);ESTADO;METODO_PAGO;FECHA_PEDIDO\n");
+
+            // Formateador numérico (estilo español: miles con punto, decimales con coma)
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("es", "ES"));
+            symbols.setDecimalSeparator(',');
+            symbols.setGroupingSeparator('.');
+            DecimalFormat df = new DecimalFormat("#,##0.00", symbols);
+
+            double sumaTotal = 0.0;
+
             for (Pedido p : pedidos) {
-                csv.append(p.getIdPedido()).append(",");
-                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres() : "") : "").append("\",");
-                csv.append("\"").append(p.getUsuario() != null ? (p.getUsuario().getApellidos() != null ? p.getUsuario().getApellidos() : "") : "").append("\",");
-                csv.append("\"").append(p.getUsuario() != null ? p.getUsuario().getEmail() : "").append("\",");
-                csv.append(p.getTotal() != null ? p.getTotal() : 0.0).append(",");
-                csv.append("\"").append(p.getEstado() != null ? p.getEstado() : "PENDIENTE").append("\",");
-                csv.append("\"").append(p.getMetodoPago() != null ? p.getMetodoPago().toString() : "").append("\",");
-                csv.append("\"").append(p.getFechaPedido() != null ? p.getFechaPedido().toString() : "").append("\"");
+                double total = p.getTotal() != null ? p.getTotal() : 0.0;
+                sumaTotal += total;
+
+                csv.append(p.getIdPedido() != null ? p.getIdPedido() : "").append(";");
+
+                String nombres = "";
+                String apellidos = "";
+                String email = "";
+                if (p.getUsuario() != null) {
+                    nombres = p.getUsuario().getNombres() != null ? p.getUsuario().getNombres() : "";
+                    apellidos = p.getUsuario().getApellidos() != null ? p.getUsuario().getApellidos() : "";
+                    email = p.getUsuario().getEmail() != null ? p.getUsuario().getEmail() : "";
+                }
+
+                // Encerrar en comillas y escapar comillas internas
+                csv.append("\"").append(nombres.replace("\"", "\"\"")).append("\";");
+                csv.append("\"").append(apellidos.replace("\"", "\"\"")).append("\";");
+                csv.append("\"").append(email.replace("\"", "\"\"")).append("\";");
+
+                // Total formateado
+                csv.append("\"").append(df.format(total)).append("\";");
+
+                csv.append("\"").append(p.getEstado() != null ? p.getEstado() : "PENDIENTE").append("\";");
+
+                csv.append("\"").append(p.getMetodoPago() != null ? p.getMetodoPago().toString() : "").append("\";");
+
+                // Fecha mostrada tal cual (toString)
+                String fechaStr = p.getFechaPedido() != null ? p.getFechaPedido().toString() : "";
+                csv.append("\"").append(fechaStr).append("\"");
+
                 csv.append("\n");
             }
-            
-            byte[] csvBytes = csv.toString().getBytes();
-            
+
+            // Línea vacía antes del resumen
+            csv.append("\n");
+            csv.append("\"────────────────────────── RESUMEN ──────────────────────────\"\n");
+            csv.append("TOTAL_PEDIDOS;").append(pedidos.size()).append("\n");
+            csv.append("SUMA_TOTAL;\"").append(df.format(sumaTotal)).append("\"\n");
+            csv.append("\n");
+
+            // BOM + UTF-8
+            byte[] csvBytes = ("\uFEFF" + csv.toString()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "pedidos_" + timestamp + ".csv";
-            
+            String filename = "pedidos_estilizado_" + timestamp + ".csv";
+
             return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + filename)
-                .header("Content-Type", "text/csv")
-                .body(csvBytes);
-                
+                    .header("Content-Disposition", "attachment; filename=" + filename)
+                    .header("Content-Type", "text/csv; charset=UTF-8")
+                    .body(csvBytes);
+
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
