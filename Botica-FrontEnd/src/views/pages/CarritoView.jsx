@@ -1,6 +1,7 @@
 // src/views/pages/CarritoView.jsx
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout'; 
 import  CartItem  from '../partials/CartItem';
@@ -15,8 +16,114 @@ import { ProductoService } from '../../services/ProductoService';
 const parsePrice = (priceStr) => {
     if (!priceStr) return 0;
     const n = Number(priceStr.replace('S/.', '').replace(',', '.').trim());
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
 };
+
+const formatCardNumber = (value = '') => {
+    const digits = value.replace(/\D/g, '').slice(0, 16);
+    const parts = digits.match(/.{1,4}/g);
+    return parts ? parts.join(' ') : digits;
+};
+
+const normalizeExpiry = (value = '') => {
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    if (digits.length === 0) return '';
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+
+const luhnCheck = (digits) => {
+    let sum = 0;
+    let shouldDouble = false;
+
+    for (let i = digits.length - 1; i >= 0; i -= 1) {
+        let digit = parseInt(digits[i], 10);
+        if (Number.isNaN(digit)) {
+            return false;
+        }
+
+        if (shouldDouble) {
+            digit *= 2;
+            if (digit > 9) {
+                digit -= 9;
+            }
+        }
+
+        sum += digit;
+        shouldDouble = !shouldDouble;
+    }
+
+    return sum % 10 === 0;
+};
+
+const isValidCardNumber = (digits) => {
+    if (!digits) return false;
+    const length = digits.length;
+    if (length < 13 || length > 19) return false;
+    return luhnCheck(digits);
+};
+
+const getExpiryValidationError = (value) => {
+    if (!value) return 'Ingresa la fecha de expiración';
+    if (!/^\d{2}\/\d{2}$/.test(value)) return 'Usa el formato MM/AA';
+
+    const month = parseInt(value.slice(0, 2), 10);
+    const year = parseInt(value.slice(3), 10);
+
+    if (Number.isNaN(month) || Number.isNaN(year)) {
+        return 'Fecha inválida';
+    }
+
+    if (month < 1 || month > 12) {
+        return 'Mes inválido';
+    }
+
+    const fullYear = year + 2000;
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const expiryDate = new Date(fullYear, month - 1, 1);
+
+    if (expiryDate < currentMonth) {
+        return 'La tarjeta está vencida';
+    }
+
+    return '';
+};
+
+const createInitialPaymentData = () => ({
+    metodo: 'tarjeta',
+    tipoTarjeta: 'credito',
+    numeroTarjeta: '',
+    nombreTitular: '',
+    fechaExpiracion: '',
+    cvv: ''
+});
+
+const createEmptyPaymentErrors = () => ({
+    numeroTarjeta: '',
+    nombreTitular: '',
+    fechaExpiracion: '',
+    cvv: '',
+    cuotas: ''
+});
+
+const CARD_KEYWORDS = ['tarjeta', 'card', 'crédito', 'credito', 'débito', 'debito'];
+const CASH_KEYWORDS = ['efectivo', 'cash'];
+
+const getMethodLookupValues = (metodo = {}) => [metodo.tipo, metodo.codigo, metodo.nombre]
+    .filter(Boolean)
+    .map((value) => value.toString().toLowerCase());
+
+const hasKeyword = (keywords, lookupValues) =>
+    lookupValues.some((value) => keywords.some((keyword) => value.includes(keyword)));
+
+const isCardPaymentMethod = (metodo) => hasKeyword(CARD_KEYWORDS, getMethodLookupValues(metodo));
+
+const isCashPaymentMethod = (metodo) => hasKeyword(CASH_KEYWORDS, getMethodLookupValues(metodo));
+
+const isAllowedPaymentMethod = (metodo) => isCardPaymentMethod(metodo) || isCashPaymentMethod(metodo);
+
+const DEFAULT_INSTALLMENT_OPTIONS = ['1', '3', '6', '12'];
 
 function CarritoView() {
     // Obtener el contexto del carrito y autenticación
@@ -36,6 +143,10 @@ function CarritoView() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [pedidoActual, setPedidoActual] = useState(null);
     const [displayCart, setDisplayCart] = useState([]);
+    const [showCardModal, setShowCardModal] = useState(false);
+    const [cardSaved, setCardSaved] = useState(false);
+    const [installmentOptions, setInstallmentOptions] = useState([]);
+    const [selectedInstallment, setSelectedInstallment] = useState('');
     
     // Estados para los datos del formulario
     const [shippingData, setShippingData] = useState({
@@ -52,13 +163,8 @@ function CarritoView() {
         email: user?.email || ''
     });
     
-    const [paymentData, setPaymentData] = useState({
-        metodo: 'tarjeta', // 'tarjeta', 'yape', 'plin', 'efectivo'
-        numeroTarjeta: '',
-        nombreTitular: '',
-        fechaExpiracion: '',
-        cvv: ''
-    }); 
+    const [paymentData, setPaymentData] = useState(() => createInitialPaymentData()); 
+    const [paymentErrors, setPaymentErrors] = useState(() => createEmptyPaymentErrors());
 
     // Debug: Mostrar información del usuario y carrito
     useEffect(() => {
@@ -96,6 +202,50 @@ function CarritoView() {
         return () => { isMounted = false; };
     }, [cart]);
 
+    const selectedMetodo = useMemo(
+        () => metodosPago.find((metodo) => String(metodo.idMetodoPago) === String(selectedMetodoPago)),
+        [metodosPago, selectedMetodoPago]
+    );
+
+    const isCardMethod = useMemo(() => {
+        if (!selectedMetodo) return false;
+        return isCardPaymentMethod(selectedMetodo);
+    }, [selectedMetodo]);
+
+    useEffect(() => {
+        if (!isCardMethod) {
+            setPaymentErrors(createEmptyPaymentErrors());
+            setCardSaved(false);
+            setInstallmentOptions([]);
+            setSelectedInstallment('');
+            if (paymentErrors.cuotas) {
+                setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
+            }
+        }
+    }, [isCardMethod, paymentErrors.cuotas]);
+
+    useEffect(() => {
+        if (!isCardMethod) return;
+
+        if (paymentData.tipoTarjeta === 'credito') {
+            if (installmentOptions.length === 0) {
+                setInstallmentOptions(DEFAULT_INSTALLMENT_OPTIONS);
+                setSelectedInstallment(DEFAULT_INSTALLMENT_OPTIONS[0]);
+            }
+        } else {
+            const isSingleInstallment = installmentOptions.length === 1 && installmentOptions[0] === '1';
+            if (!isSingleInstallment) {
+                setInstallmentOptions(['1']);
+            }
+            if (selectedInstallment !== '1') {
+                setSelectedInstallment('1');
+            }
+            if (paymentErrors.cuotas) {
+                setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
+            }
+        }
+    }, [isCardMethod, paymentData.tipoTarjeta, installmentOptions, selectedInstallment, paymentErrors.cuotas]);
+
     // Cargar métodos de pago al montar el componente
     useEffect(() => {
         if (isAuthenticated() && cart.length > 0) {
@@ -103,14 +253,202 @@ function CarritoView() {
         }
     }, [isAuthenticated, cart.length]);
 
+    const resetPaymentForm = useCallback(() => {
+        setPaymentData(createInitialPaymentData());
+        setPaymentErrors(createEmptyPaymentErrors());
+        setCardSaved(false);
+        setShowCardModal(false);
+        setInstallmentOptions([]);
+        setSelectedInstallment('');
+    }, []);
+
+    const handlePaymentFieldChange = useCallback((field, value) => {
+        setPaymentData((prev) => {
+            let nextValue = value;
+
+            if (field === 'numeroTarjeta') {
+                nextValue = formatCardNumber(value);
+                setInstallmentOptions([]);
+                setSelectedInstallment('');
+            } else if (field === 'fechaExpiracion') {
+                nextValue = normalizeExpiry(value);
+            } else if (field === 'nombreTitular') {
+                nextValue = value.toUpperCase();
+            } else if (field === 'cvv') {
+                nextValue = value.replace(/\D/g, '').slice(0, 3);
+            }
+
+            return {
+                ...prev,
+                [field]: nextValue
+            };
+        });
+
+        setCardSaved(false);
+
+        setPaymentErrors((prev) => ({
+            ...prev,
+            [field]: ''
+        }));
+        setSuccess('');
+    }, []);
+
+    const validatePaymentData = useCallback(() => {
+        const errors = createEmptyPaymentErrors();
+
+        if (!isCardMethod) {
+            return {
+                isValid: true,
+                errors
+            };
+        }
+
+        const digits = paymentData.numeroTarjeta.replace(/\s/g, '');
+
+        if (!digits) {
+            errors.numeroTarjeta = 'Ingresa el número de tu tarjeta de crédito o débito';
+        } else if (!isValidCardNumber(digits)) {
+            errors.numeroTarjeta = 'Número de tarjeta inválido';
+        }
+
+        if (!paymentData.nombreTitular.trim()) {
+            errors.nombreTitular = 'Ingresa el nombre del titular';
+        }
+
+        const expiryError = getExpiryValidationError(paymentData.fechaExpiracion);
+        if (expiryError) {
+            errors.fechaExpiracion = expiryError;
+        }
+
+        if (!paymentData.cvv) {
+            errors.cvv = 'Ingresa el CVV';
+        } else if (!/^\d{3}$/.test(paymentData.cvv)) {
+            errors.cvv = 'El CVV debe tener 3 dígitos';
+        }
+
+        if (paymentData.tipoTarjeta === 'credito' && (!selectedInstallment || selectedInstallment === '')) {
+            errors.cuotas = 'Selecciona el número de cuotas';
+        }
+
+        const isValid = Object.values(errors).every((message) => !message);
+        return { isValid, errors };
+    }, [isCardMethod, paymentData, selectedInstallment]);
+
+    const handleValidatePaymentOnBlur = useCallback(() => {
+        setPaymentErrors(validatePaymentData().errors);
+    }, [validatePaymentData]);
+
+    const handleMetodoPagoChange = useCallback((value) => {
+        setSelectedMetodoPago(value);
+        const metodoSeleccionado = metodosPago.find((metodo) => String(metodo.idMetodoPago) === String(value));
+        if (metodoSeleccionado && isCardPaymentMethod(metodoSeleccionado)) {
+            setShowCardModal(true);
+            setCardSaved(false);
+            setSuccess('');
+            setError('');
+            setPaymentData((prev) => ({
+                ...prev,
+                tipoTarjeta: prev?.tipoTarjeta || 'credito'
+            }));
+            if (installmentOptions.length === 0) {
+                setInstallmentOptions(DEFAULT_INSTALLMENT_OPTIONS);
+                setSelectedInstallment(DEFAULT_INSTALLMENT_OPTIONS[0]);
+            }
+        } else {
+            setShowCardModal(false);
+            setCardSaved(false);
+            setSuccess('');
+            setError('');
+            setInstallmentOptions([]);
+            setSelectedInstallment('');
+        }
+    }, [metodosPago, installmentOptions.length]);
+
+    const handleCardTypeChange = useCallback((tipo) => {
+        setPaymentData((prev) => ({
+            ...prev,
+            tipoTarjeta: tipo
+        }));
+        setCardSaved(false);
+        setSuccess('');
+        setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
+        if (tipo === 'credito') {
+            setInstallmentOptions(DEFAULT_INSTALLMENT_OPTIONS);
+            setSelectedInstallment(DEFAULT_INSTALLMENT_OPTIONS[0]);
+        } else {
+            setInstallmentOptions(['1']);
+            setSelectedInstallment('1');
+        }
+    }, []);
+
+    const handleInstallmentChange = useCallback((value) => {
+        setSelectedInstallment(value);
+        setCardSaved(false);
+        setSuccess('');
+        setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
+    }, []);
+
+    const handleCardModalClose = useCallback(() => {
+        setShowCardModal(false);
+        if (!cardSaved) {
+            setSelectedMetodoPago('');
+        }
+    }, [cardSaved]);
+
+    const handleCardModalSave = useCallback(() => {
+        const { isValid, errors } = validatePaymentData();
+        setPaymentErrors(errors);
+        if (!isValid) {
+            return;
+        }
+        setCardSaved(true);
+        setShowCardModal(false);
+        setSuccess('Datos de la tarjeta guardados correctamente.');
+    }, [validatePaymentData]);
+
+    const handlePaymentStepContinue = useCallback(() => {
+        if (!selectedMetodoPago) {
+            setError('Selecciona un método de pago');
+            return;
+        }
+
+        if (isCardMethod) {
+            if (!cardSaved) {
+                setError('Guarda primero los datos de tu tarjeta.');
+                setShowCardModal(true);
+                return;
+            }
+            const { isValid, errors } = validatePaymentData();
+            setPaymentErrors(errors);
+
+            if (!isValid) {
+                setError('Revisa los datos de tu tarjeta.');
+                return;
+            }
+        }
+
+        setError('');
+        setActiveStep(4);
+    }, [isCardMethod, selectedMetodoPago, setActiveStep, setError, validatePaymentData]);
+
+    const maskedCardNumber = useMemo(() => {
+        const digits = paymentData.numeroTarjeta.replace(/\D/g, '');
+        if (digits.length < 4) return '';
+        return `**** **** **** ${digits.slice(-4)}`;
+    }, [paymentData.numeroTarjeta]);
+
+    // Cargar métodos de pago al montar el componente
     const cargarMetodosPago = async () => {
         try {
             const response = await fetch('http://localhost:8080/api/metodos-pago/activos');
             if (response.ok) {
                 const data = await response.json();
-                setMetodosPago(data);
-                if (data.length > 0) {
-                    setSelectedMetodoPago(data[0].idMetodoPago);
+                const filteredMetodos = Array.isArray(data) ? data.filter(isAllowedPaymentMethod) : [];
+                setMetodosPago(filteredMetodos);
+                if (filteredMetodos.length > 0) {
+                    setSelectedMetodoPago(filteredMetodos[0].idMetodoPago);
+                } else {
+                    setSelectedMetodoPago('');
                 }
             }
         } catch (error) {
@@ -119,85 +457,71 @@ function CarritoView() {
         }
     };
 
-    // Función para generar PDF de la boleta
-    const generarPDFBoleta = async (pedido, options = {}) => {
-        const { download = true, silent = false } = options;
+    const generarPDFBoleta = useCallback(async (pedido, detalles = []) => {
         try {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
-            
-            // Cargar logo
+
             const logoPath = `${process.env.PUBLIC_URL}/assets/Logodef.png`;
             const logoImg = new Image();
             logoImg.src = logoPath;
-            
+
             await new Promise((resolve) => {
                 logoImg.onload = resolve;
-                logoImg.onerror = () => {
-                    console.warn('No se pudo cargar el logo');
-                    resolve();
-                };
+                logoImg.onerror = () => resolve();
             });
-            
-            // Agregar logo (arriba a la izquierda)
+
             if (logoImg.complete && logoImg.naturalHeight !== 0) {
                 doc.addImage(logoImg, 'PNG', 10, 10, 40, 20);
             }
-            
-            // Título - BOLETA DE VENTA
+
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
             doc.text('BOLETA DE VENTA', pageWidth / 2, 20, { align: 'center' });
-            
-            // Información de la botica
+
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             doc.text('Botica EcoSalud', pageWidth / 2, 28, { align: 'center' });
             doc.text('RUC: 20123456789', pageWidth / 2, 33, { align: 'center' });
             doc.text('Dirección: Av. Principal 123, Lima', pageWidth / 2, 38, { align: 'center' });
-            
-            // Línea separadora
+
             doc.setLineWidth(0.5);
             doc.line(10, 43, pageWidth - 10, 43);
-            
-            // Información del pedido
+
             let yPos = 50;
             doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.text(`Pedido N°: ${pedido.idPedido || 'N/A'}`, 10, yPos);
+            doc.text(`Pedido N°: ${pedido.idPedido}`, 10, yPos);
             yPos += 6;
             doc.setFont('helvetica', 'normal');
-            doc.text(`Fecha: ${pedido.fechaPedido || new Date().toLocaleDateString()}`, 10, yPos);
+            doc.text(`Fecha: ${pedido.fechaPedido ? new Date(pedido.fechaPedido).toLocaleDateString() : new Date().toLocaleDateString()}`, 10, yPos);
             yPos += 6;
             doc.text(`Estado: ${pedido.estado || 'PENDIENTE'}`, 10, yPos);
             yPos += 6;
-            doc.text(`Método de Pago: ${pedido.metodoPago?.nombre || metodosPago.find(m => m.idMetodoPago == selectedMetodoPago)?.nombre || 'N/A'}`, 10, yPos);
-            
-            // Información del cliente
+            doc.text(`Método de Pago: ${pedido.metodoPago?.nombre || 'N/A'}`, 10, yPos);
+
             yPos += 10;
             doc.setFont('helvetica', 'bold');
             doc.text('DATOS DEL CLIENTE', 10, yPos);
             yPos += 6;
             doc.setFont('helvetica', 'normal');
-            doc.text(`Cliente: ${user?.nombres || ''} ${user?.apellidos || ''}`, 10, yPos);
+            doc.text(`Cliente: ${pedido.usuario?.nombres || ''} ${pedido.usuario?.apellidos || ''}`, 10, yPos);
             yPos += 6;
-            doc.text(`Email: ${user?.email || ''}`, 10, yPos);
+            doc.text(`Email: ${pedido.usuario?.email || ''}`, 10, yPos);
             yPos += 6;
-            if (user?.telefono) {
-                doc.text(`Teléfono: ${user.telefono}`, 10, yPos);
+            if (pedido.usuario?.telefono) {
+                doc.text(`Teléfono: ${pedido.usuario.telefono}`, 10, yPos);
                 yPos += 6;
             }
-            if (contactData.direccion || user?.direccion) {
-                doc.text(`Dirección: ${contactData.direccion || user?.direccion}`, 10, yPos);
+            if (pedido.usuario?.direccion) {
+                doc.text(`Dirección: ${pedido.usuario.direccion}`, 10, yPos);
                 yPos += 6;
             }
-            
-            // Línea separadora
+
             yPos += 4;
             doc.line(10, yPos, pageWidth - 10, yPos);
             yPos += 8;
-            
-            // Encabezado de tabla de productos
+
             doc.setFont('helvetica', 'bold');
             doc.text('N°', 10, yPos);
             doc.text('Producto', 25, yPos);
@@ -207,84 +531,41 @@ function CarritoView() {
             yPos += 2;
             doc.line(10, yPos, pageWidth - 10, yPos);
             yPos += 6;
-            
-            // Detalles de productos
+
             doc.setFont('helvetica', 'normal');
             let total = 0;
-            
-            // Obtener detalles del pedido o usar el carrito actual
-            const detalles = pedido.detalles || cart.map(item => ({
-                producto: {
-                    idProducto: item.idProducto || item.id,
-                    nombre: item.nombre || item.name,
-                    precio: parsePrice(item.precio || item.price)
-                },
-                cantidad: item.cantidad || item.quantity || 1,
-                precioUnitario: parsePrice(item.precio || item.price),
-                subtotal: parsePrice(item.precio || item.price) * (item.cantidad || item.quantity || 1)
-            }));
-            
+
             detalles.forEach((detalle, index) => {
                 const producto = detalle.producto || {};
                 const numeroSecuencial = index + 1;
-                const nombre = producto.nombre || detalle.nombre || 'Producto';
+                const nombre = producto.nombre || 'Producto';
                 const cantidad = detalle.cantidad || 1;
-                const precioUnitario = detalle.precioUnitario || producto.precio || 0;
+                const precioUnitario = detalle.precioUnitario || 0;
                 const subtotal = detalle.subtotal || (precioUnitario * cantidad);
-                
+
                 doc.text(String(numeroSecuencial), 10, yPos);
-                
-                // Nombre del producto (con wrap si es muy largo)
-                const nombreCorto = nombre.length > 35 ? nombre.substring(0, 35) + '...' : nombre;
+                const nombreCorto = nombre.length > 35 ? `${nombre.substring(0, 35)}...` : nombre;
                 doc.text(nombreCorto, 25, yPos);
-                
                 doc.text(String(cantidad), 120, yPos);
                 doc.text(`S/. ${precioUnitario.toFixed(2)}`, 145, yPos);
                 doc.text(`S/. ${subtotal.toFixed(2)}`, 175, yPos);
-                
+
                 total += subtotal;
                 yPos += 6;
-                
-                // Nueva página si es necesario
+
                 if (yPos > 270) {
                     doc.addPage();
                     yPos = 20;
                 }
             });
-            
-            // Línea antes del total
+
             yPos += 4;
             doc.line(10, yPos, pageWidth - 10, yPos);
             yPos += 8;
-            
-            // Subtotal, IGV y Total
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            
-            // Subtotal
-            const subtotalValue = pedido.total || total;
-            doc.text('Subtotal:', pageWidth - 80, yPos);
-            doc.text(`S/. ${subtotalValue.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
-            yPos += 6;
-            
-            // IGV (18%)
-            const igvValue = subtotalValue * 0.18;
-            doc.text('IGV (18%):', pageWidth - 80, yPos);
-            doc.text(`S/. ${igvValue.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
-            yPos += 6;
-            
-            // Línea antes del total final
-            doc.setLineWidth(0.2);
-            doc.line(pageWidth - 80, yPos, pageWidth - 10, yPos);
-            yPos += 4;
-            
-            // Total Final
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            const totalConIGV = subtotalValue + igvValue;
-            doc.text(`TOTAL: S/. ${totalConIGV.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
-            
-            // Pie de página
+            doc.text(`TOTAL: S/. ${(pedido.total || total).toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+
             yPos += 15;
             doc.setFontSize(9);
             doc.setFont('helvetica', 'italic');
@@ -292,75 +573,37 @@ function CarritoView() {
             yPos += 5;
             doc.text('Botica EcoSalud - Cuidando tu salud naturalmente', pageWidth / 2, yPos, { align: 'center' });
 
-            // Añadir QR al pie de página
-            yPos += 10;
-            const qrPath = `${process.env.PUBLIC_URL}/assets/QR.png`;
-            const qrImg = new Image();
-            qrImg.src = qrPath;
-            
-            await new Promise((resolve) => {
-                qrImg.onload = resolve;
-                qrImg.onerror = () => {
-                    console.warn('No se pudo cargar el QR');
-                    resolve();
-                };
-            });
-            
-            // Agregar QR centrado
-            if (qrImg.complete && qrImg.naturalHeight !== 0) {
-                const qrSize = 30; // tamaño del QR en el PDF
-                const qrX = (pageWidth - qrSize) / 2;
-                doc.addImage(qrImg, 'PNG', qrX, yPos, qrSize, qrSize);
-            }
-            
-            
-            // Guardar PDF
-            const fileName = `Boleta_${pedido.idPedido || Date.now()}.pdf`;
-            const dataUriString = doc.output('datauristring');
-            const pdfBase64 = dataUriString.split(',')[1] || null;
-
-            if (download) {
-                doc.save(fileName);
-            }
-
-            if (!silent) {
-                console.log('PDF generado exitosamente:', fileName);
-            }
-
-            return pdfBase64;
-        } catch (error) {
-            console.error('Error al generar PDF:', error);
-            return null;
+            const fileName = `Boleta_${pedido.idPedido}.pdf`;
+            doc.save(fileName);
+        } catch (err) {
+            console.error('Error al generar PDF:', err);
+            setError('Error al generar la boleta PDF');
         }
-    };
+    }, [setError]);
 
-    const enviarConfirmacionConBoleta = async (pedido) => {
-        if (!pedido?.idPedido) return;
-
+    const enviarConfirmacionConBoleta = useCallback(async (pedido) => {
         try {
-            const pdfBase64 = await generarPDFBoleta(pedido, { download: false, silent: true });
-            const body = pdfBase64 ? { boletaPdfBase64: pdfBase64 } : {};
+            if (!pedido || !pedido.idPedido) return;
 
-            const response = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/confirmacion`, {
-                method: 'POST',
+            const detallesResponse = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/detalles`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user?.token || 'dummy-token'}`,
                     'X-User-Role': user?.rol || 'USER'
-                },
-                body: JSON.stringify(body)
+                }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error al enviar confirmación de pedido:', response.status, errorText);
-            } else {
-                console.log('Confirmación de pedido enviada correctamente');
+            let detalles = [];
+            if (detallesResponse.ok) {
+                const detallesData = await detallesResponse.json();
+                detalles = Array.isArray(detallesData) ? detallesData : [];
             }
-        } catch (error) {
-            console.error('Error al preparar o enviar la boleta del pedido:', error);
+
+            await generarPDFBoleta(pedido, detalles);
+        } catch (err) {
+            console.error('Error al enviar confirmación con boleta:', err);
         }
-    };
+    }, [generarPDFBoleta, user]);
 
     const procesarPedido = async () => {
         console.log('Iniciando procesarPedido desde carrito...');
@@ -384,6 +627,22 @@ function CarritoView() {
             return;
         }
 
+        if (isCardMethod) {
+            if (!cardSaved) {
+                setError('Guarda primero los datos de tu tarjeta.');
+                setShowCardModal(true);
+                return;
+            }
+            const { isValid, errors } = validatePaymentData();
+            setPaymentErrors(errors);
+
+            if (!isValid) {
+                setError('Revisa los datos de tu tarjeta.');
+                setActiveStep(3);
+                return;
+            }
+        }
+
         setLoading(true);
         setError('');
 
@@ -397,10 +656,23 @@ function CarritoView() {
             console.log('Productos en carrito:', cart);
             console.log('Detalles a enviar:', detalles);
 
+            const cardDigits = paymentData.numeroTarjeta.replace(/\s/g, '');
+            const paymentPayload = isCardMethod ? {
+                tipoTarjeta: 'CARD',
+                numeroTarjeta: cardDigits,
+                ultimosDigitos: cardDigits.slice(-4),
+                nombreTitular: paymentData.nombreTitular.trim(),
+                fechaExpiracion: paymentData.fechaExpiracion,
+                cvv: paymentData.cvv,
+                modalidad: paymentData.tipoTarjeta,
+                cuotas: paymentData.tipoTarjeta === 'credito' ? selectedInstallment : '1'
+            } : null;
+
             const pedidoRequest = {
                 idUsuario: user.idUsuario,
                 idMetodoPago: parseInt(selectedMetodoPago),
-                detalles: detalles
+                detalles: detalles,
+                ...(paymentPayload ? { datosPago: paymentPayload } : {})
             };
 
             console.log('pedidoRequest:', pedidoRequest);
@@ -437,6 +709,7 @@ function CarritoView() {
                 
                 // Limpiar carrito
                 clearCart();
+                resetPaymentForm();
             } else {
                 const errorText = await response.text();
                 console.log('Error response:', errorText);
@@ -491,7 +764,7 @@ function CarritoView() {
                         <div className="modal-buttons">
                             <button 
                                 className="btn-download-pdf"
-                                onClick={() => generarPDFBoleta(pedidoActual)}
+                                onClick={() => enviarConfirmacionConBoleta(pedidoActual)}
                             >
                                 📄 Descargar Boleta PDF
                             </button>
@@ -502,9 +775,189 @@ function CarritoView() {
                                     setPedidoActual(null);
                                     setActiveStep(0);
                                     setSelectedMetodoPago('');
+                                    resetPaymentForm();
                                 }}
                             >
                                 Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCardModal && (
+                <div className="modal-overlay" role="dialog" aria-modal="true">
+                    <div className="modal-content card-modal" style={{ maxWidth: '520px', width: '100%', padding: '28px 32px', borderRadius: '18px', boxShadow: '0 25px 50px -12px rgba(30,64,175,0.35)' }}>
+                        <div className="card-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '22px', color: '#1f2937' }}>Datos de la tarjeta</h2>
+                                <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#6b7280' }}>Ingresa la información como aparece en tu tarjeta.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCardModalClose}
+                                style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}
+                                aria-label="Cerrar"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="card-preview card-preview-lg" style={{ background: 'linear-gradient(135deg, #0ea5e9, #4338ca)', borderRadius: '18px', padding: '22px 24px', color: '#fff', boxShadow: '0 20px 40px -12px rgba(14,165,233,0.45)', marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 600, letterSpacing: '0.06em' }}>BOTICA ECOSALUD</span>
+                                <span style={{ width: '36px', height: '26px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.25)' }}></span>
+                            </div>
+                            <div style={{ margin: '28px 0 18px', fontSize: '24px', letterSpacing: '0.18em' }}>
+                                {paymentData.numeroTarjeta || '**** **** **** ****'}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                                <div>
+                                    <span style={{ display: 'block', opacity: 0.7 }}>Titular</span>
+                                    <span style={{ fontSize: '14px', letterSpacing: '0.05em' }}>{paymentData.nombreTitular || 'NOMBRE APELLIDO'}</span>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', opacity: 0.7 }}>Expira</span>
+                                    <span style={{ fontSize: '14px', letterSpacing: '0.05em' }}>{paymentData.fechaExpiracion || 'MM/AA'}</span>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', opacity: 0.7 }}>CVV</span>
+                                    <span style={{ fontSize: '14px', letterSpacing: '0.05em' }}>{paymentData.cvv ? '***' : '***'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card-modal-body" style={{ display: 'grid', gap: '16px' }}>
+                            <div className="card-type-toggle" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-start' }}>
+                                <button
+                                    type="button"
+                                    className={`btn-secondary ${paymentData.tipoTarjeta === 'credito' ? 'active' : ''}`}
+                                    onClick={() => handleCardTypeChange('credito')}
+                                    style={{ padding: '10px 18px', borderRadius: '999px', borderWidth: paymentData.tipoTarjeta === 'credito' ? '2px' : '1px', borderColor: paymentData.tipoTarjeta === 'credito' ? '#4338ca' : '#d1d5db', color: paymentData.tipoTarjeta === 'credito' ? '#4338ca' : '#374151', background: paymentData.tipoTarjeta === 'credito' ? 'rgba(67,56,202,0.08)' : '#fff', transition: 'all 0.2s ease' }}
+                                >
+                                    Crédito
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`btn-secondary ${paymentData.tipoTarjeta === 'debito' ? 'active' : ''}`}
+                                    onClick={() => handleCardTypeChange('debito')}
+                                    style={{ padding: '10px 18px', borderRadius: '999px', borderWidth: paymentData.tipoTarjeta === 'debito' ? '2px' : '1px', borderColor: paymentData.tipoTarjeta === 'debito' ? '#16a085' : '#d1d5db', color: paymentData.tipoTarjeta === 'debito' ? '#0f766e' : '#374151', background: paymentData.tipoTarjeta === 'debito' ? 'rgba(14,165,233,0.08)' : '#fff', transition: 'all 0.2s ease' }}
+                                >
+                                    Débito
+                                </button>
+                            </div>
+
+                            <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151' }}>
+                                Número de tarjeta
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="cc-number"
+                                    placeholder="XXXX XXXX XXXX XXXX"
+                                    value={paymentData.numeroTarjeta}
+                                    onChange={(e) => handlePaymentFieldChange('numeroTarjeta', e.target.value)}
+                                    onBlur={handleValidatePaymentOnBlur}
+                                    className="form-input"
+                                    style={{ padding: '14px 16px', borderRadius: '10px', border: paymentErrors.numeroTarjeta ? '1px solid #dc2626' : '1px solid #d1d5db' }}
+                                />
+                                {paymentErrors.numeroTarjeta && (
+                                    <span style={{ color: '#dc2626', fontSize: '12px' }}>{paymentErrors.numeroTarjeta}</span>
+                                )}
+                            </label>
+
+                            <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151' }}>
+                                Nombre del titular (como figura en la tarjeta)
+                                <input
+                                    type="text"
+                                    autoComplete="cc-name"
+                                    placeholder="EJM: JUAN PEREZ"
+                                    value={paymentData.nombreTitular}
+                                    onChange={(e) => handlePaymentFieldChange('nombreTitular', e.target.value)}
+                                    onBlur={handleValidatePaymentOnBlur}
+                                    className="form-input"
+                                    style={{ padding: '14px 16px', borderRadius: '10px', border: paymentErrors.nombreTitular ? '1px solid #dc2626' : '1px solid #d1d5db' }}
+                                />
+                                {paymentErrors.nombreTitular && (
+                                    <span style={{ color: '#dc2626', fontSize: '12px' }}>{paymentErrors.nombreTitular}</span>
+                                )}
+                            </label>
+
+                            <div className="card-modal-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
+                                <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151' }}>
+                                    Fecha de expiración
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="cc-exp"
+                                        placeholder="MM/AA"
+                                        value={paymentData.fechaExpiracion}
+                                        onChange={(e) => handlePaymentFieldChange('fechaExpiracion', e.target.value)}
+                                        onBlur={handleValidatePaymentOnBlur}
+                                        className="form-input"
+                                        style={{ padding: '14px 16px', borderRadius: '10px', border: paymentErrors.fechaExpiracion ? '1px solid #dc2626' : '1px solid #d1d5db' }}
+                                    />
+                                    {paymentErrors.fechaExpiracion && (
+                                        <span style={{ color: '#dc2626', fontSize: '12px' }}>{paymentErrors.fechaExpiracion}</span>
+                                    )}
+                                </label>
+
+                                <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151' }}>
+                                    CVV
+                                    <input
+                                        type="password"
+                                        inputMode="numeric"
+                                        autoComplete="cc-csc"
+                                        placeholder="123"
+                                        value={paymentData.cvv}
+                                        onChange={(e) => handlePaymentFieldChange('cvv', e.target.value)}
+                                        onBlur={handleValidatePaymentOnBlur}
+                                        className="form-input"
+                                        maxLength={3}
+                                        style={{ padding: '14px 16px', borderRadius: '10px', border: paymentErrors.cvv ? '1px solid #dc2626' : '1px solid #d1d5db' }}
+                                    />
+                                    {paymentErrors.cvv && (
+                                        <span style={{ color: '#dc2626', fontSize: '12px' }}>{paymentErrors.cvv}</span>
+                                    )}
+                                </label>
+                            </div>
+
+                            {paymentData.tipoTarjeta === 'credito' && (
+                                <label className="form-label" style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px', color: '#374151' }}>
+                                    Cuotas
+                                    <select
+                                        value={selectedInstallment || ''}
+                                        onChange={(e) => handleInstallmentChange(e.target.value)}
+                                        className="form-input"
+                                        style={{ padding: '14px 16px', borderRadius: '10px', border: paymentErrors.cuotas ? '1px solid #dc2626' : '1px solid #d1d5db' }}
+                                    >
+                                        <option value="" disabled>Selecciona el número de cuotas</option>
+                                        {installmentOptions.map((option) => (
+                                            <option key={option} value={option}>{`${option} cuota${option === '1' ? '' : 's'}`}</option>
+                                        ))}
+                                    </select>
+                                    {paymentErrors.cuotas && (
+                                        <span style={{ color: '#dc2626', fontSize: '12px' }}>{paymentErrors.cuotas}</span>
+                                    )}
+                                </label>
+                            )}
+                        </div>
+
+                        <div className="card-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '26px' }}>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={handleCardModalClose}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleCardModalSave}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                Guardar tarjeta
+                                <span aria-hidden="true">💳</span>
                             </button>
                         </div>
                     </div>
@@ -692,7 +1145,7 @@ function CarritoView() {
                                                             name="metodoPago"
                                                             value={metodo.idMetodoPago}
                                                             checked={selectedMetodoPago == metodo.idMetodoPago}
-                                                            onChange={(e) => setSelectedMetodoPago(e.target.value)}
+                                                            onChange={(e) => handleMetodoPagoChange(e.target.value)}
                                                             className="payment-radio"
                                                         />
                                                         <div className="payment-info">
@@ -702,11 +1155,66 @@ function CarritoView() {
                                                     </label>
                                                 ))}
                                             </div>
+
+                                            {isCardMethod && (
+                                                <div className="card-summary-section">
+                                                    <div className="card-summary-header">
+                                                        <div>
+                                                            <h4 style={{ margin: 0, color: '#1f2937' }}>Tarjeta de crédito o débito</h4>
+                                                            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                                                                Ingrese los datos de la tarjeta para procesar el pago.
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-secondary"
+                                                            onClick={() => setShowCardModal(true)}
+                                                        >
+                                                            {cardSaved ? 'Editar tarjeta' : 'Agregar tarjeta'}
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="card-preview">
+                                                        <div className="card-preview-inner">
+                                                            <div className="card-preview-header">
+                                                                <span className="card-brand">Botica EcoSalud</span>
+                                                                <span className="card-chip" aria-hidden="true"></span>
+                                                            </div>
+                                                            <div className="card-preview-number">
+                                                                {cardSaved ? maskedCardNumber || '**** **** **** ****' : '**** **** **** ****'}
+                                                            </div>
+                                                            <div className="card-preview-footer">
+                                                                <div>
+                                                                    <span className="card-label">Titular</span>
+                                                                    <span className="card-value">{cardSaved ? paymentData.nombreTitular || 'NOMBRE APELLIDO' : 'NOMBRE APELLIDO'}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="card-label">Expira</span>
+                                                                    <span className="card-value">{cardSaved ? paymentData.fechaExpiracion || 'MM/AA' : 'MM/AA'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="card-summary-status">
+                                                        {cardSaved ? (
+                                                            <span className="status-chip status-chip-success">Datos de tarjeta guardados</span>
+                                                        ) : (
+                                                            <span className="status-chip status-chip-warning">Falta registrar los datos de la tarjeta</span>
+                                                        )}
+                                                    </div>
+                                                    {cardSaved && paymentData.tipoTarjeta === 'credito' && (
+                                                        <div style={{ marginTop: '0.5rem', fontSize: '13px', color: '#1f2937' }}>
+                                                            Cuotas seleccionadas: <strong>{selectedInstallment} cuota{selectedInstallment === '1' ? '' : 's'}</strong>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             
                                             <button 
                                                 className="btn-next"
-                                                onClick={() => setActiveStep(4)}
-                                                disabled={!selectedMetodoPago}
+                                                onClick={handlePaymentStepContinue}
+                                                disabled={!selectedMetodoPago || (isCardMethod && !cardSaved)}
                                             >
                                                 Continuar
                                             </button>
@@ -737,7 +1245,11 @@ function CarritoView() {
                                             <div className="summary-section">
                                                 <h4>💳 Pago</h4>
                                                 <p>{metodosPago.find(m => m.idMetodoPago == selectedMetodoPago)?.nombre || 'No seleccionado'}</p>
+                                                {isCardMethod && maskedCardNumber && (
+                                                    <p style={{ fontSize: '13px', color: '#4b5563' }}>Tarjeta • {maskedCardNumber}</p>
+                                                )}
                                             </div>
+                                            
                                             <div className="summary-section">
                                                 <h4>💰 Total</h4>
                                                 <h3>S/.{subtotal}</h3>
