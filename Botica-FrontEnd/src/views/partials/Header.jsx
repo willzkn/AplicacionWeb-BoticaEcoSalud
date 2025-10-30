@@ -123,10 +123,20 @@ function Header({
               className="user-btn" 
               onClick={() => setShowUserMenu(!showUserMenu)}
             >
-              {user?.nombres || 'Usuario'}
+              {user?.imagen && (
+                <img 
+                  src={user.imagen} 
+                  alt="Perfil" 
+                  className="user-avatar"
+                />
+              )}
+              <span className="user-name">{user?.nombres || 'Usuario'}</span>
             </button>
             {showUserMenu && (
               <div className="user-dropdown">
+                <Link to="/perfil" className="profile-btn" onClick={() => setShowUserMenu(false)}>
+                  Mi Perfil
+                </Link>
                 <button onClick={handleLogout} className="logout-btn">
                   Cerrar sesión
                 </button>
