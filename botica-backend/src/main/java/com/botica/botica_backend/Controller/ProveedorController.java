@@ -140,17 +140,27 @@ public class ProveedorController {
     // EXPORTACIÓN CSV
     // =====================================================
 
-    // Exportar proveedores a CSV
+    // Exportar proveedores a CSV (estilizado, sin logo ni nota)
     @GetMapping("/export/csv")
     public ResponseEntity<byte[]> exportarProveedoresCSV() {
         try {
             List<Proveedor> proveedores = proveedorService.getAllProveedores();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID;RUC;Nombre_Comercial;Telefono;Correo;Persona_Contacto;Tipo_Producto;Condiciones_Pago;Estado;Fecha_Registro\n");
+            
+            // Cabecera con nombre de la empresa y una línea en blanco
+            csv.append("EMPRESA: ECOSALUD").append("\n").append("\n");
+            
+            // línea decorativa
+            csv.append("\"════════════════════════════════════════════════════════════════════════\"\n");
 
+            // Encabezado CSV (separador ;)
+            csv.append("ID;RUC;NOMBRE_COMERCIAL;TELEFONO;CORREO;PERSONA_CONTACTO;TIPO_PRODUCTO;CONDICIONES_PAGO;ESTADO;FECHA_REGISTRO\n");
+
+            long total = 0;
             for (Proveedor p : proveedores) {
-                csv.append(p.getIdProveedor()).append(";");
+                total++;
+                csv.append(p.getIdProveedor() != null ? p.getIdProveedor() : "").append(";");
                 csv.append("\"").append(p.getRUC() != null ? p.getRUC() : "").append("\";");
                 csv.append("\"").append(p.getNombreComercial() != null ? p.getNombreComercial().replace("\"", "\"\"") : "").append("\";");
                 csv.append("\"").append(p.getTelefono() != null ? p.getTelefono() : "").append("\";");
@@ -163,17 +173,25 @@ public class ProveedorController {
                 csv.append("\n");
             }
             
-            byte[] csvBytes = csv.toString().getBytes();
+            // Resumen
+            csv.append("\n");
+            csv.append("\"────────────────────────── RESUMEN ──────────────────────────\"\n");
+            csv.append("TOTAL_PROVEEDORES;").append(total).append("\n");
+            csv.append("\n");
+            
+            // Añadir BOM y usar UTF-8 para mejor compatibilidad con Excel
+            byte[] csvBytes = ("\uFEFF" + csv.toString()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
             
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "proveedores_" + timestamp + ".csv";
+            String filename = "proveedores_estilizado_" + timestamp + ".csv";
             
             return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + filename)
-                .header("Content-Type", "text/csv")
+                .header("Content-Type", "text/csv; charset=UTF-8")
                 .body(csvBytes);
                 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

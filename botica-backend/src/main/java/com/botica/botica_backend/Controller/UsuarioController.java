@@ -328,7 +328,7 @@ public class UsuarioController {
     // EXPORTACIÓN CSV
     // =====================================================
 
-    // Exportar usuarios a CSV
+    // Exportar usuarios a CSV (estilizado, sin logo ni nota)
     @GetMapping("/export/csv")
     public ResponseEntity<byte[]> exportarUsuariosCSV() {
         try {
@@ -337,31 +337,52 @@ public class UsuarioController {
             List<Usuario> usuarios = usuarioService.getUsuarios();
             
             StringBuilder csv = new StringBuilder();
-            csv.append("ID;Nombres;Apellidos;Email;Telefono;Direccion;Rol;Estado;Fecha_Registro\n");
+            // Cabecera con nombre de la empresa y una línea en blanco
+            csv.append("EMPRESA: ECOSALUD").append("\n").append("\n");
+            
+            // línea decorativa
+            csv.append("\"════════════════════════════════════════════════════════════════════════\"\n");
+            
+            // Encabezado CSV (separador ;)
+            csv.append("ID;NOMBRES;APELLIDOS;EMAIL;TELEFONO;DIRECCION;ROL;ESTADO;FECHA_REGISTRO\n");
+
+            long totalUsuarios = 0;
+            long activos = 0;
 
             for (Usuario u : usuarios) {
-                csv.append(u.getIdUsuario()).append(";");
-                csv.append("\"").append(u.getNombres() != null ? u.getNombres() : "").append("\";");
-                csv.append("\"").append(u.getApellidos() != null ? u.getApellidos() : "").append("\";");
+                totalUsuarios++;
+                if (u.getActivo() != null && u.getActivo()) activos++;
+
+                csv.append(u.getIdUsuario() != null ? u.getIdUsuario() : "").append(";");
+                csv.append("\"").append(u.getNombres() != null ? u.getNombres().replace("\"", "\"\"") : "").append("\";");
+                csv.append("\"").append(u.getApellidos() != null ? u.getApellidos().replace("\"", "\"\"") : "").append("\";");
                 csv.append("\"").append(u.getEmail() != null ? u.getEmail() : "").append("\";");
                 csv.append("\"").append(u.getTelefono() != null ? u.getTelefono() : "").append("\";");
                 csv.append("\"").append(u.getDireccion() != null ? u.getDireccion().replace("\"", "\"\"") : "").append("\";");
                 csv.append("\"").append(u.getRol() != null ? u.getRol() : "USER").append("\";");
                 csv.append("\"").append(u.getActivo() != null && u.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
-                csv.append("\"").append(u.getFechaRegistro() != null ? u.getFechaRegistro().toString() : "").append("\";");
+                csv.append("\"").append(u.getFechaRegistro() != null ? u.getFechaRegistro().toString() : "").append("\"");
                 csv.append("\n");
             }
             
-            byte[] csvBytes = csv.toString().getBytes();
+            // Resumen simple
+            csv.append("\n");
+            csv.append("\"────────────────────────── RESUMEN ──────────────────────────\"\n");
+            csv.append("TOTAL_USUARIOS;").append(totalUsuarios).append("\n");
+            csv.append("USUARIOS_ACTIVOS;").append(activos).append("\n");
+            csv.append("\n");
+            
+            // Añadir BOM y usar UTF-8
+            byte[] csvBytes = ("\uFEFF" + csv.toString()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
             
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "usuarios_" + timestamp + ".csv";
+            String filename = "usuarios_estilizado_" + timestamp + ".csv";
             
             logger.info("CSV de usuarios generado: {}, {} usuarios, {} bytes", filename, usuarios.size(), csvBytes.length);
             
             return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=" + filename)
-                .header("Content-Type", "text/csv")
+                .header("Content-Type", "text/csv; charset=UTF-8")
                 .body(csvBytes);
                 
         } catch (Exception e) {

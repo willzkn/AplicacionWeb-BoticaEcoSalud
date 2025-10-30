@@ -6,7 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -140,33 +144,64 @@ public class CategoriaController {
     public ResponseEntity<byte[]> exportarCategoriasCSV() {
         try {
             List<Categoria> categorias = categoriaService.listarTodas();
-            
-            StringBuilder csv = new StringBuilder();
-            csv.append("ID;Nombre;Descripcion;Estado;Fecha_Creacion;Productos_Count\n");
-            
-            for (Categoria c : categorias) {
-                Long productosCount = categoriaService.contarProductosPorCategoria(c.getIdCategoria());
 
-                csv.append(c.getIdCategoria()).append(";");
-                csv.append("\"").append(c.getNombre() != null ? c.getNombre() : "Sin nombre").append("\";");
+            StringBuilder csv = new StringBuilder();
+
+            csv.append("EMPRESA: ECOSALUD").append("\n");
+            csv.append("\n");
+
+            // Línea decorativa
+            csv.append("\"════════════════════════════════════════════════════════════════════════\"\n");
+
+            // Encabezado de columnas
+            csv.append("ID;NOMBRE;DESCRIPCION;ESTADO;FECHA_CREACION;PRODUCTOS_COUNT\n");
+
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("es", "ES"));
+            symbols.setGroupingSeparator('.');
+            DecimalFormat intFmt = new DecimalFormat("#,##0", symbols);
+
+            long totalCategorias = 0;
+            long totalProductos = 0;
+
+            for (Categoria c : categorias) {
+                totalCategorias++;
+                Long productosCount = categoriaService.contarProductosPorCategoria(c.getIdCategoria());
+                totalProductos += productosCount != null ? productosCount : 0L;
+
+                csv.append(c.getIdCategoria() != null ? c.getIdCategoria() : "").append(";");
+
+                csv.append("\"").append(c.getNombre() != null ? c.getNombre().replace("\"", "\"\"") : "SIN NOMBRE").append("\";");
                 csv.append("\"").append(c.getDescripcion() != null ? c.getDescripcion().replace("\"", "\"\"") : "").append("\";");
-                csv.append("\"").append(c.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
-                csv.append("\"").append(c.getFechaCreacion() != null ? c.getFechaCreacion().toString() : "").append("\";");
-                csv.append(productosCount);
+                csv.append("\"").append(c.getActivo() != null && c.getActivo() ? "ACTIVO" : "INACTIVO").append("\";");
+
+                String fechaStr = c.getFechaCreacion() != null ? c.getFechaCreacion().toString() : "";
+                csv.append("\"").append(fechaStr).append("\";");
+
+                csv.append("\"").append(intFmt.format(productosCount != null ? productosCount : 0)).append("\"");
+
                 csv.append("\n");
             }
-            
-            byte[] csvBytes = csv.toString().getBytes();
-            
+
+            // Resumen
+            csv.append("\n");
+            csv.append("\"────────────────────────── RESUMEN ──────────────────────────\"\n");
+            csv.append("TOTAL_CATEGORIAS;").append(totalCategorias).append("\n");
+            csv.append("TOTAL_PRODUCTOS;\"").append(new DecimalFormat("#,##0", symbols).format(totalProductos)).append("\"\n");
+            csv.append("\n");
+
+            // Añadir BOM y usar UTF-8
+            byte[] csvBytes = ("\uFEFF" + csv.toString()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "categorias_" + timestamp + ".csv";
-            
+            String filename = "categorias_estilizado_" + timestamp + ".csv";
+
             return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + filename)
-                .header("Content-Type", "text/csv")
-                .body(csvBytes);
-                
+                    .header("Content-Disposition", "attachment; filename=" + filename)
+                    .header("Content-Type", "text/csv; charset=UTF-8")
+                    .body(csvBytes);
+
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
