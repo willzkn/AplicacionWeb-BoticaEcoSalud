@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
 import ProductoService from '../services/ProductoService';
 
 const parsePrice = (priceStr) => {
@@ -16,6 +18,8 @@ export default function useCatalogoController() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]); // categorías activas desde backend
+  const [categoryFilter, setCategoryFilter] = useState(null); // id de categoría seleccionada
+  const location = useLocation();
 
   const togglePresentation = useCallback((name) => {
     setPresentations(prev => {
@@ -30,6 +34,7 @@ export default function useCatalogoController() {
     setPriceMax(100);
     setPresentations(new Set());
     setSortOption('nuevo');
+    setCategoryFilter(null);
   }, []);
 
   // Cargar productos del backend al montar el componente
@@ -104,6 +109,15 @@ export default function useCatalogoController() {
     cargarProductos();
   }, []);
 
+  // Sincronizar filtro con query string (categoriaId)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoriaIdParam = params.get('categoriaId');
+    if (categoriaIdParam) {
+      setCategoryFilter(categoriaIdParam);
+    }
+  }, [location.search]);
+
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -115,6 +129,17 @@ export default function useCatalogoController() {
 
     // Rango de precio (0 - priceMax)
     list = list.filter(p => parsePrice(p.price) <= priceMax);
+
+    // Filtro por categoría seleccionada
+    if (categoryFilter !== null && categoryFilter !== undefined && categoryFilter !== '') {
+      list = list.filter(p => {
+        const productCategoryId = p.categoria?.idCategoria ?? p.idCategoria ?? p.categoryId ?? null;
+        if (productCategoryId === null || productCategoryId === undefined) {
+          return false;
+        }
+        return String(productCategoryId) === String(categoryFilter);
+      });
+    }
 
     // Presentación seleccionada(s): comparar con el campo transformado presentation
     if (presentations.size > 0) {
@@ -132,7 +157,7 @@ export default function useCatalogoController() {
     // 'rating' no implementado por no existir campo; queda como orden por defecto
 
     return list;
-  }, [products, searchTerm, priceMax, presentations, sortOption, categories]);
+  }, [products, searchTerm, priceMax, presentations, sortOption, categories, categoryFilter]);
 
   return {
     // datos

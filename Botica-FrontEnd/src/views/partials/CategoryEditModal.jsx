@@ -5,8 +5,10 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    activo: true
+    activo: true,
+    imagen: ''
   });
+  const [isReadingImage, setIsReadingImage] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,16 +21,19 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
         setFormData({
           nombre: category.nombre || '',
           descripcion: category.descripcion || '',
-          activo: category.activo !== false
+          activo: category.activo !== false,
+          imagen: category.imagen || ''
         });
       } else {
         // Modo creación
         setFormData({
           nombre: '',
           descripcion: '',
-          activo: true
+          activo: true,
+          imagen: ''
         });
       }
+      setIsReadingImage(false);
       setError('');
     }
   }, [isOpen, category]);
@@ -41,6 +46,40 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
     }));
   };
 
+  const handleImageUpload = (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('El archivo seleccionado debe ser una imagen');
+      event.target.value = '';
+      return;
+    }
+
+    // Convertir imagen a Base64 con prefijo data:
+    const reader = new FileReader();
+    setIsReadingImage(true);
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setFormData(prev => ({ ...prev, imagen: result }));
+      }
+      setIsReadingImage(false);
+    };
+    reader.onerror = () => {
+      setError('No se pudo leer la imagen. Inténtalo nuevamente.');
+      setIsReadingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setFormData(prev => ({ ...prev, imagen: '' }));
+    setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -50,6 +89,10 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
       // Validaciones básicas
       if (!formData.nombre.trim()) {
         throw new Error('El nombre es obligatorio');
+      }
+
+      if (isReadingImage) {
+        throw new Error('Espera a que termine de procesarse la imagen');
       }
 
       let url, method;
@@ -79,7 +122,6 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
       const savedCategory = await response.json();
       onSave(savedCategory);
       onClose();
-      
     } catch (e) {
       setError(e.message || 'Error al guardar categoría');
     } finally {
@@ -126,6 +168,56 @@ export default function CategoryEditModal({ isOpen, onClose, category, onSave })
             className="form-input"
             placeholder="Descripción opcional de la categoría"
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="imagen">Imagen (URL, nombre de archivo o data URL)</label>
+          <input
+            type="text"
+            id="imagen"
+            name="imagen"
+            value={formData.imagen}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="Ej: categorias/medicamentos.jpg"
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            <label className="btn-secondary" style={{ cursor: 'pointer', margin: 0 }}>
+              Seleccionar archivo
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageUpload}
+                disabled={loading}
+              />
+            </label>
+            {formData.imagen && (
+              <button
+                type="button"
+                className="btn-tertiary"
+                onClick={handleClearImage}
+                disabled={loading}
+              >
+                Quitar imagen
+              </button>
+            )}
+            {isReadingImage && (
+              <span style={{ fontSize: 12, color: '#555' }}>Procesando imagen...</span>
+            )}
+          </div>
+          {formData.imagen && (
+            <div style={{ marginTop: 8 }}>
+              <img
+                src={formData.imagen.startsWith('data:') || formData.imagen.startsWith('http')
+                  ? formData.imagen
+                  : `http://localhost:8080/api/imagenes/view/${formData.imagen}`}
+                alt={`Vista previa ${formData.nombre || 'categoría'}`}
+                style={{ width: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 4 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="form-group">
