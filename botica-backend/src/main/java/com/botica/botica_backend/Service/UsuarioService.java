@@ -5,9 +5,19 @@ import com.botica.botica_backend.Model.PasswordResetToken;
 import com.botica.botica_backend.Repository.UsuarioRepository;
 import com.botica.botica_backend.Repository.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,11 +28,127 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
+    private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final PasswordResetTokenRepository tokenRepository;
     private final ImagenService imagenService;
+    private final DataSource dataSource;
+
+    @PostConstruct
+    public void asegurarAdminPorDefecto() {
+        asegurarColumnaImagen();
+
+        final String adminEmail = "admin@ecosalud.pe";
+        final String adminPassword = "admin123";
+
+        Optional<Usuario> adminOpt = usuarioRepository.findByEmail(adminEmail);
+
+        if (adminOpt.isEmpty()) {
+            logger.info("No se encontró usuario admin. Creando registro por defecto: {}", adminEmail);
+            Usuario admin = new Usuario();
+            admin.setEmail(adminEmail);
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setNombres("Administrador");
+            admin.setApellidos("Sistema");
+            admin.setRol("ADMIN");
+            admin.setActivo(true);
+            admin.setFechaRegistro(LocalDate.now());
+            admin.setDebeCambiarPassword(false);
+            usuarioRepository.save(admin);
+            return;
+        }
+
+        Usuario admin = adminOpt.get();
+        boolean actualizado = false;
+
+        if (admin.getPassword() == null || admin.getPassword().isBlank() || !passwordEncoder.matches(adminPassword, admin.getPassword())) {
+            logger.info("Normalizando contraseña del usuario admin");
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            actualizado = true;
+        }
+
+        if (admin.getRol() == null || !"ADMIN".equalsIgnoreCase(admin.getRol())) {
+            logger.info("Normalizando rol del usuario admin");
+            admin.setRol("ADMIN");
+            actualizado = true;
+        }
+
+        if (admin.getActivo() == null || !admin.getActivo()) {
+            logger.info("Activando usuario admin");
+            admin.setActivo(true);
+            actualizado = true;
+        }
+
+        if (admin.getFechaRegistro() == null) {
+            admin.setFechaRegistro(LocalDate.now());
+            actualizado = true;
+        }
+
+        if (admin.getNombres() == null || admin.getNombres().isBlank()) {
+            admin.setNombres("Administrador");
+            actualizado = true;
+        }
+
+        if (admin.getApellidos() == null || admin.getApellidos().isBlank()) {
+            admin.setApellidos("Sistema");
+            actualizado = true;
+        }
+
+        if (admin.getDebeCambiarPassword() == null) {
+            admin.setDebeCambiarPassword(false);
+            actualizado = true;
+        }
+
+        if (actualizado) {
+            usuarioRepository.save(admin);
+            logger.info("Usuario admin asegurado correctamente");
+        } else {
+            logger.info("Usuario admin ya configurado correctamente");
+        }
+    }
+
+    private void asegurarColumnaImagen() {
+        try (Connection connection = dataSource.getConnection()) {
+            if (connection == null) {
+                logger.warn("No se pudo obtener conexión para verificar columna imagen");
+                return;
+            }
+
+            String schema = connection.getCatalog();
+            if (schema == null || schema.isBlank()) {
+                schema = connection.getSchema();
+            }
+
+            if (existeColumna(connection, schema, "usuarios", "imagen")) {
+                return;
+            }
+
+            logger.info("Columna 'imagen' no existe en la tabla usuarios. Creándola automáticamente");
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("ALTER TABLE usuarios ADD COLUMN imagen LONGTEXT NULL");
+            }
+            logger.info("Columna 'imagen' creada correctamente");
+        } catch (SQLException e) {
+            logger.error("No se pudo verificar o crear la columna imagen en usuarios", e);
+        }
+    }
+
+    private boolean existeColumna(Connection connection, String schema, String tabla, String columna) throws SQLException {
+        DatabaseMetaData metaData = connection.getMetaData();
+
+        try (ResultSet rs = metaData.getColumns(schema, null, tabla, columna)) {
+            if (rs.next()) {
+                return true;
+            }
+        }
+
+        // Intento con mayúsculas por compatibilidad
+        try (ResultSet rsUpper = metaData.getColumns(schema, null, tabla.toUpperCase(), columna.toUpperCase())) {
+            return rsUpper.next();
+        }
+    }
 
     // Read
     public List<Usuario> getUsuarios() {
@@ -112,18 +238,42 @@ public class UsuarioService {
     // Login con datos del usuario - Retorna el usuario completo si las credenciales son correctas
     public Usuario iniciarSesionConDatos(String email, String password) {
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-        
+
         if (usuarioOpt.isEmpty()) {
+            logger.warn("Intento de login con email no registrado: {}", email);
             return null;
         }
-        
+
         Usuario usuario = usuarioOpt.get();
-        
-        // Verificar si la contraseña coincide con el hash almacenado
-        if (passwordEncoder.matches(password, usuario.getPassword())) {
+        String storedPassword = usuario.getPassword();
+
+        if (storedPassword == null || storedPassword.isBlank()) {
+            logger.error("El usuario {} no tiene una contraseña almacenada", email);
+            return null;
+        }
+
+        try {
+            if (passwordEncoder.matches(password, storedPassword)) {
+                return usuario;
+            }
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Hash de contraseña inválido para {}. Intentando compatibilidad con texto plano", email);
+            if (password.equals(storedPassword)) {
+                usuario.setPassword(passwordEncoder.encode(password));
+                usuarioRepository.save(usuario);
+                logger.info("Contraseña de {} migrada a formato BCrypt", email);
+                return usuario;
+            }
+            return null;
+        }
+
+        if (password.equals(storedPassword)) {
+            logger.info("Contraseña en texto plano detectada para {}. Normalizando a BCrypt", email);
+            usuario.setPassword(passwordEncoder.encode(password));
+            usuarioRepository.save(usuario);
             return usuario;
         }
-        
+
         return null;
     }
 

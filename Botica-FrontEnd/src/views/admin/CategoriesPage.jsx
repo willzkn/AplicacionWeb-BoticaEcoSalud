@@ -127,6 +127,12 @@ export default function CategoriesPage() {
     category.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const resolveImageSrc = (imagen) => {
+    if (!imagen) return '';
+    if (imagen.startsWith('http') || imagen.startsWith('data:')) return imagen;
+    return `http://localhost:8080/api/imagenes/view/${imagen}`;
+  };
+
   return (
     <AdminLayout>
       <div>
@@ -207,6 +213,7 @@ export default function CategoriesPage() {
           <table className="table">
             <thead>
               <tr>
+                <th>Imagen</th>
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Descripción</th>
@@ -218,13 +225,53 @@ export default function CategoriesPage() {
             <tbody>
               {filteredCategories.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
                     {searchTerm ? 'No se encontraron categorías' : 'Sin categorías registradas'}
                   </td>
                 </tr>
               )}
               {filteredCategories.map((c) => (
                 <tr key={c.idCategoria} className={!c.activo ? 'row-inactive' : ''}>
+                  <td>
+                    {resolveImageSrc(c.imagen) ? (
+                      <img
+                        src={resolveImageSrc(c.imagen)}
+                        alt={c.nombre || 'Categoría'}
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '2px solid #e5e7eb',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          window.open(resolveImageSrc(c.imagen), '_blank');
+                        }}
+                        onError={(e) => {
+                          if (e.target.dataset.fallback === 'true') {
+                            return;
+                          }
+                          e.target.dataset.fallback = 'true';
+                          e.target.src = 'https://via.placeholder.com/50?text=Sin+Img';
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        color: '#9ca3af'
+                      }}>
+                        🗂️
+                      </div>
+                    )}
+                  </td>
                   <td>{c.idCategoria}</td>
                   <td>
                     <div>

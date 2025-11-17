@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
 import useCatalogoController from '../../controllers/CatalogoController'; 
 import '../../styles/catalogo.css';
@@ -115,7 +115,19 @@ function CatalogoView() {
     setSortOption,
     clearFilters,
     categories,
+    promotionsProducts,
+    showPromotions,
+    dismissPromotions,
   } = useCatalogoController();
+
+  useEffect(() => {
+    if (showPromotions) {
+      const section = document.getElementById('promociones');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [showPromotions]);
 
   return (
     <MainLayout>
@@ -131,6 +143,33 @@ function CatalogoView() {
           categories={categories}
         />
         <div className="products-content">
+          {showPromotions && (
+            <section id="promociones" className="promotions-section">
+              <div className="promotions-header">
+                <div>
+                  <h3>Promociones destacadas</h3>
+                  <p>Seleccionamos algunos productos para ti. ¡Aprovecha mientras duren!</p>
+                </div>
+                <button
+                  type="button"
+                  className="promotions-close"
+                  onClick={dismissPromotions}
+                >
+                  Cerrar
+                </button>
+              </div>
+              <div className="promotions-grid">
+                {promotionsProducts.length > 0 ? (
+                  promotionsProducts.map(product => (
+                    <ProductItem key={`promo-${product.id}`} product={product} />
+                  ))
+                ) : (
+                  <p className="promotions-empty">Por el momento no hay promociones disponibles.</p>
+                )}
+              </div>
+            </section>
+          )}
+
           <div className="filter-pills-container">
             <span
               className={`filter-pill ${sortOption === 'nuevo' ? 'active' : ''}`}

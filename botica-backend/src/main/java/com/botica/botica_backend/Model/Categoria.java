@@ -23,6 +23,7 @@ public class Categoria {
     private Boolean activo;
     @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
+    private String imagen;
 
     // Manual getters and setters as fallback
     public Long getIdCategoria() { return idCategoria; }
@@ -39,4 +40,7 @@ public class Categoria {
     
     public LocalDate getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDate fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public String getImagen() { return imagen; }
+    public void setImagen(String imagen) { this.imagen = imagen; }
 }

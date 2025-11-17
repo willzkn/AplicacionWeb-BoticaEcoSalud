@@ -33,7 +33,8 @@ CREATE TABLE categorias (
     nombre VARCHAR(255) NOT NULL,
     descripcion VARCHAR(255),
     activo BOOLEAN,
-    fecha_creacion DATE
+    fecha_creacion DATE,
+    imagen VARCHAR(255)
 );
 
 -- Tabla proveedor
@@ -142,15 +143,15 @@ INSERT INTO metodos_pago (nombre, descripcion, activo) VALUES
 ('Plin', 'Pago mediante aplicación Plin', true);
 
 -- Categorías
-INSERT INTO categorias (nombre, descripcion, activo, fecha_creacion) VALUES 
-('Medicamentos', 'Medicamentos con y sin receta médica', true, CURDATE()),
-('Vitaminas y Suplementos', 'Vitaminas, minerales y suplementos nutricionales', true, CURDATE()),
-('Cuidado Personal', 'Productos de higiene y cuidado personal', true, CURDATE()),
-('Primeros Auxilios', 'Productos para primeros auxilios y emergencias', true, CURDATE()),
-('Bebé y Mamá', 'Productos para el cuidado de bebés y madres', true, CURDATE()),
-('Dermocosméticos', 'Productos dermatológicos y cosméticos', true, CURDATE()),
-('Equipos Médicos', 'Equipos y dispositivos médicos', true, CURDATE()),
-('Nutrición Deportiva', 'Suplementos para deportistas', true, CURDATE());
+INSERT INTO categorias (nombre, descripcion, activo, fecha_creacion, imagen) VALUES 
+('Medicamentos', 'Medicamentos con y sin receta médica', true, CURDATE(), 'categorias/medicamentos.jpg'),
+('Vitaminas y Suplementos', 'Vitaminas, minerales y suplementos nutricionales', true, CURDATE(), 'categorias/vitaminas-suplementos.jpg'),
+('Cuidado Personal', 'Productos de higiene y cuidado personal', true, CURDATE(), 'categorias/cuidado-personal.jpg'),
+('Primeros Auxilios', 'Productos para primeros auxilios y emergencias', true, CURDATE(), 'categorias/primeros-auxilios.jpg'),
+('Bebé y Mamá', 'Productos para el cuidado de bebés y madres', true, CURDATE(), 'categorias/bebe-mama.jpg'),
+('Dermocosméticos', 'Productos dermatológicos y cosméticos', true, CURDATE(), 'categorias/dermocosmeticos.jpg'),
+('Equipos Médicos', 'Equipos y dispositivos médicos', true, CURDATE(), 'categorias/equipos-medicos.jpg'),
+('Nutrición Deportiva', 'Suplementos para deportistas', true, CURDATE(), 'categorias/nutricion-deportiva.jpg');
 
 -- Proveedores
 INSERT INTO proveedor (nombre_comercial, ruc, telefono, correo, persona_contacto, tipo_producto, condiciones_pago, estado, fecha_registro) VALUES 

@@ -1,8 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import '../../styles/inicio.css';
 import Header from '../partials/Header';
 import Footer from '../partials/Footer';
 import Chatbot from '../partials/Chatbot';
+import ProductoService from '../../services/ProductoService';
+
+const FALLBACK_IMAGE_BY_NAME = {
+  medicamentos: `${process.env.PUBLIC_URL}/assets/grid-1.JPG`,
+  'vitaminas y suplementos': `${process.env.PUBLIC_URL}/assets/grid-2.JPG`,
+  'cuidado personal': `${process.env.PUBLIC_URL}/assets/grid-3.JPG`,
+  'primeros auxilios': `${process.env.PUBLIC_URL}/assets/grid-4.JPG`,
+  'bebe y mama': `${process.env.PUBLIC_URL}/assets/grid-5.JPG`,
+  'bebé y mamá': `${process.env.PUBLIC_URL}/assets/grid-5.JPG`,
+  'dermocosmeticos': `${process.env.PUBLIC_URL}/assets/grid-6.JPG`,
+  'dermocosméticos': `${process.env.PUBLIC_URL}/assets/grid-6.JPG`,
+  'equipos medicos': `${process.env.PUBLIC_URL}/assets/grid-4.JPG`,
+  'equipos médicos': `${process.env.PUBLIC_URL}/assets/grid-4.JPG`,
+  'nutricion deportiva': `${process.env.PUBLIC_URL}/assets/grid-3.JPG`,
+  'nutrición deportiva': `${process.env.PUBLIC_URL}/assets/grid-3.JPG`
+};
+
+const FALLBACK_GRID_IMAGES = [
+  { id: 1, src: `${process.env.PUBLIC_URL}/assets/grid-1.JPG`, alt: 'Categoría destacada 1' },
+  { id: 2, src: `${process.env.PUBLIC_URL}/assets/grid-2.JPG`, alt: 'Categoría destacada 2' },
+  { id: 3, src: `${process.env.PUBLIC_URL}/assets/grid-3.JPG`, alt: 'Categoría destacada 3' },
+  { id: 4, src: `${process.env.PUBLIC_URL}/assets/grid-4.JPG`, alt: 'Categoría destacada 4' },
+  { id: 5, src: `${process.env.PUBLIC_URL}/assets/grid-5.JPG`, alt: 'Categoría destacada 5' },
+  { id: 6, src: `${process.env.PUBLIC_URL}/assets/grid-6.JPG`, alt: 'Categoría destacada 6' }
+];
 
 // Componente de flecha para navegación
 const Arrow = ({ direction, onClick }) => (
@@ -99,7 +125,13 @@ const ImageSlider = ({ slides }) => {
               className={`slider__slide ${index === currentSlide ? 'active' : ''}`}
               aria-hidden={index !== currentSlide}
             >
-              <img src={slide.src} alt={slide.alt} />
+              <Link
+                to="/catalogo"
+                className="slider__link"
+                aria-label={slide.alt || 'Ir al catálogo'}
+              >
+                <img src={slide.src} alt={slide.alt} />
+              </Link>
             </div>
           ))}
         </div>
@@ -130,14 +162,59 @@ const Inicio = () => {
     { id: 3, src: `${process.env.PUBLIC_URL}/assets/slider3.JPG`, alt: "Producto destacado 3" }
   ];
 
-  const gridImages = [
-    { id: 1, src: `${process.env.PUBLIC_URL}/assets/grid-1.JPG`, alt: "Producto 1" },
-    { id: 2, src: `${process.env.PUBLIC_URL}/assets/grid-2.JPG`, alt: "Producto 2" },
-    { id: 3, src: `${process.env.PUBLIC_URL}/assets/grid-3.JPG`, alt: "Producto 3" },
-    { id: 4, src: `${process.env.PUBLIC_URL}/assets/grid-4.JPG`, alt: "Producto 4" },
-    { id: 5, src: `${process.env.PUBLIC_URL}/assets/grid-5.JPG`, alt: "Producto 5" },
-    { id: 6, src: `${process.env.PUBLIC_URL}/assets/grid-6.JPG`, alt: "Producto 6" }
-  ];
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/categorias/activas');
+        if (!response.ok) throw new Error('No se pudieron cargar las categorías');
+        const data = await response.json();
+        const filtered = Array.isArray(data)
+          ? data.filter((cat) => cat && (cat.activo ?? true))
+          : [];
+        setCategories(filtered);
+      } catch (error) {
+        console.error('Error al cargar categorías para el inicio:', error);
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const normalizeCategoryName = (value) => {
+    if (typeof value !== 'string') return '';
+    let normalized = value.trim();
+    try {
+      normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (error) {
+      // noop: algunos navegadores legacy podrían no soportar normalize
+    }
+    return normalized.toLowerCase();
+  };
+
+  const categoriesForGrid = categories.map((category, index) => {
+    const normalizedName = normalizeCategoryName(category?.nombre);
+    const fallbackImage = FALLBACK_IMAGE_BY_NAME[normalizedName] || FALLBACK_GRID_IMAGES[index % FALLBACK_GRID_IMAGES.length].src;
+    const fallbackAlt = FALLBACK_GRID_IMAGES[index % FALLBACK_GRID_IMAGES.length].alt;
+
+    const rawImage = typeof category?.imagen === 'string' ? category.imagen.trim() : '';
+    const resolvedFromBackend = rawImage
+      ? (rawImage.startsWith('data:image') || rawImage.startsWith('http'))
+        ? rawImage
+        : ProductoService.obtenerUrlImagen(rawImage)
+      : null;
+
+    return {
+      key: category.idCategoria,
+      to: `/catalogo?categoriaId=${category.idCategoria}&categoriaNombre=${encodeURIComponent(category.nombre || '')}`,
+      src: resolvedFromBackend || fallbackImage,
+      alt: (category?.nombre || '').trim() || fallbackAlt
+    };
+  });
+
+  const gridImages = categoriesForGrid.length > 0 ? categoriesForGrid : FALLBACK_GRID_IMAGES;
 
   return (
     <div className="ecosalud-root">
@@ -155,9 +232,15 @@ const Inicio = () => {
         </header>
 
         <section className="catalogo__grid">
-          {gridImages.map((image) => (
-            <div key={image.id} className="grid__item">
-              <img src={image.src} alt={image.alt} />
+          {gridImages.map((image, index) => (
+            <div key={image.key ?? image.id ?? index} className="grid__item">
+              {image.to ? (
+                <Link to={image.to}>
+                  <img src={image.src} alt={image.alt} loading="lazy" />
+                </Link>
+              ) : (
+                <img src={image.src} alt={image.alt} loading="lazy" />
+              )}
             </div>
           ))}
         </section>
