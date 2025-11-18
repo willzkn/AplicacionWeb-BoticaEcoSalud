@@ -6,11 +6,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Servicio para la gestión de pedidos
+ */
 @Service
 @RequiredArgsConstructor
 public class PedidoService {
@@ -22,6 +26,7 @@ public class PedidoService {
     private final MetodoPagoRepository metodoPagoRepository;
     private final CarritoRepository carritoRepository;
     private final EmailService emailService;
+    private final MercadoPagoService mercadoPagoService;
 
     /**
      * Crear un nuevo pedido con sus detalles
@@ -84,6 +89,33 @@ public class PedidoService {
         pedido.setDetalles(detalles);
         
         return pedido;
+    }
+
+    public record CheckoutMercadoPagoResponse(
+            Long pedidoId,
+            String preferenceId,
+            String initPoint,
+            String sandboxInitPoint,
+            BigDecimal total,
+            String estado
+    ) {
+    }
+
+    public CheckoutMercadoPagoResponse iniciarCheckoutMercadoPago(PedidoRequest pedidoRequest) {
+        Pedido pedido = crearPedido(pedidoRequest);
+        pedido.setEstado("PENDIENTE_MP");
+        pedido = pedidoRepository.save(pedido);
+
+        MercadoPagoService.PreferenceData preferenceData = mercadoPagoService.createPreference(pedido);
+
+        return new CheckoutMercadoPagoResponse(
+                pedido.getIdPedido(),
+                preferenceData.preferenceId(),
+                preferenceData.initPoint(),
+                preferenceData.sandboxInitPoint(),
+                preferenceData.total(),
+                pedido.getEstado()
+        );
     }
 
     public void enviarConfirmacionPedido(Long idPedido, String boletaPdfBase64) {

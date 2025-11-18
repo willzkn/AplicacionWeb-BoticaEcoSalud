@@ -2,6 +2,7 @@ package com.botica.botica_backend.Controller;
 
 import com.botica.botica_backend.Model.Pedido;
 import com.botica.botica_backend.Model.Detalle_pedido;
+import com.botica.botica_backend.Service.MercadoPagoService;
 import com.botica.botica_backend.Service.PedidoService;
 import com.botica.botica_backend.Security.RoleBasedAccessControl;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/pedidos")
@@ -21,6 +23,7 @@ import java.util.Map;
 public class PedidoController {
 
     private final PedidoService pedidoService;
+    private final MercadoPagoService mercadoPagoService;
 
     // Crear pedido (disponible para clientes autenticados)
     @PostMapping("/create")
@@ -32,6 +35,77 @@ public class PedidoController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/checkout/mercadopago/preferencia")
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER","cliente","Admin","admin","Cliente","client"})
+    public ResponseEntity<?> generarPreferenciaMercadoPago(@RequestBody PedidoService.PedidoRequest pedidoRequest) {
+        try {
+            PedidoService.CheckoutMercadoPagoResponse response = pedidoService.iniciarCheckoutMercadoPago(pedidoRequest);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/checkout/mercadopago/notificacion")
+    public ResponseEntity<Map<String, Object>> recibirNotificacionMercadoPago(
+            @RequestParam Map<String, String> queryParams,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        try {
+            Map<String, Object> payload = body != null ? body : new HashMap<>();
+            mercadoPagoService.handleNotification(queryParams, payload);
+            return ResponseEntity.ok(Map.of("status", "received"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage())) ;
+        }
+    }
+
+    @GetMapping("/checkout/mercadopago/confirmacion")
+    @RoleBasedAccessControl(allowedRoles = {"CLIENT", "CLIENTE", "ADMIN", "USER","cliente","Admin","admin","Cliente","client"})
+    public ResponseEntity<?> confirmarPagoMercadoPago(
+            @RequestParam(value = "payment_id", required = false) String paymentIdParam,
+            @RequestParam(value = "paymentId", required = false) String paymentIdAlt,
+            @RequestParam(value = "preference_id", required = false) String preferenceId,
+            @RequestParam(value = "external_reference", required = false) String externalReference,
+            @RequestParam(value = "status", required = false) String status
+    ) {
+        String rawPaymentId = paymentIdParam != null ? paymentIdParam : paymentIdAlt;
+        if (rawPaymentId == null || rawPaymentId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "payment_id es requerido"));
+        }
+
+        try {
+            Long paymentId = Long.parseLong(rawPaymentId);
+            var resultado = mercadoPagoService.confirmarPagoManual(paymentId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", resultado.paymentStatus());
+            response.put("statusDetail", resultado.paymentStatusDetail());
+            response.put("externalReference", resultado.externalReference());
+            response.put("pedidoEstado", resultado.pedidoEstado());
+            response.put("paymentId", resultado.paymentId());
+            response.put("preferenceId", preferenceId);
+            response.put("requestStatus", status);
+            response.put("pedido", resultado.pedidoActualizado());
+            response.put("mensaje", determinarMensajePago(resultado.paymentStatus()));
+            response.put("externalReferenceReceived", externalReference);
+            return ResponseEntity.ok(response);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "payment_id inválido"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private String determinarMensajePago(String status) {
+        if (status == null) return "Estado desconocido";
+        return switch (status.toLowerCase()) {
+            case "approved" -> "Pago aprobado";
+            case "in_process", "pending", "authorized" -> "Pago pendiente de confirmación";
+            case "rejected", "cancelled", "refunded", "charged_back" -> "Pago no aprobado";
+            default -> "Estado del pago: " + status;
+        };
     }
 
     @PostMapping("/{id}/confirmacion")
@@ -136,7 +210,7 @@ public class PedidoController {
             csv.append("ID;NOMBRES;APELLIDOS;EMAIL;TOTAL (S/);ESTADO;METODO_PAGO;FECHA_PEDIDO\n");
 
             // Formateador numérico (estilo español: miles con punto, decimales con coma)
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("es", "ES"));
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("es", "ES"));
             symbols.setDecimalSeparator(',');
             symbols.setGroupingSeparator('.');
             DecimalFormat df = new DecimalFormat("#,##0.00", symbols);
