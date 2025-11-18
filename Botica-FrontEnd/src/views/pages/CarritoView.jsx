@@ -109,6 +109,9 @@ const createEmptyPaymentErrors = () => ({
 
 const CARD_KEYWORDS = ['tarjeta', 'card', 'crédito', 'credito', 'débito', 'debito'];
 const CASH_KEYWORDS = ['efectivo', 'cash'];
+const MERCADO_PAGO_KEYWORDS = ['mercado pago', 'mercadopago', 'mercado', 'tarjeta', 'card'];
+
+const MP_CHECKOUT_ENDPOINT = 'http://localhost:8080/api/pedidos/checkout/mercadopago/preferencia';
 
 const getMethodLookupValues = (metodo = {}) => [metodo.tipo, metodo.codigo, metodo.nombre]
     .filter(Boolean)
@@ -121,7 +124,10 @@ const isCardPaymentMethod = (metodo) => hasKeyword(CARD_KEYWORDS, getMethodLooku
 
 const isCashPaymentMethod = (metodo) => hasKeyword(CASH_KEYWORDS, getMethodLookupValues(metodo));
 
-const isAllowedPaymentMethod = (metodo) => isCardPaymentMethod(metodo) || isCashPaymentMethod(metodo);
+const isMercadoPagoPaymentMethod = (metodo) => hasKeyword(MERCADO_PAGO_KEYWORDS, getMethodLookupValues(metodo));
+
+const isAllowedPaymentMethod = (metodo) =>
+    isCardPaymentMethod(metodo) || isCashPaymentMethod(metodo) || isMercadoPagoPaymentMethod(metodo);
 
 const DEFAULT_INSTALLMENT_OPTIONS = ['1', '3', '6', '12'];
 
@@ -212,8 +218,15 @@ function CarritoView() {
         return isCardPaymentMethod(selectedMetodo);
     }, [selectedMetodo]);
 
+    const isMercadoPagoMethodSelected = useMemo(() => {
+        if (!selectedMetodo) return false;
+        return isMercadoPagoPaymentMethod(selectedMetodo) || isCardPaymentMethod(selectedMetodo);
+    }, [selectedMetodo]);
+
+    const requiresCardForm = useMemo(() => isCardMethod && !isMercadoPagoMethodSelected, [isCardMethod, isMercadoPagoMethodSelected]);
+
     useEffect(() => {
-        if (!isCardMethod) {
+        if (!requiresCardForm) {
             setPaymentErrors(createEmptyPaymentErrors());
             setCardSaved(false);
             setInstallmentOptions([]);
@@ -222,10 +235,10 @@ function CarritoView() {
                 setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
             }
         }
-    }, [isCardMethod, paymentErrors.cuotas]);
+    }, [requiresCardForm, paymentErrors.cuotas]);
 
     useEffect(() => {
-        if (!isCardMethod) return;
+        if (!requiresCardForm) return;
 
         if (paymentData.tipoTarjeta === 'credito') {
             if (installmentOptions.length === 0) {
@@ -244,7 +257,7 @@ function CarritoView() {
                 setPaymentErrors((prev) => ({ ...prev, cuotas: '' }));
             }
         }
-    }, [isCardMethod, paymentData.tipoTarjeta, installmentOptions, selectedInstallment, paymentErrors.cuotas]);
+    }, [requiresCardForm, paymentData.tipoTarjeta, installmentOptions, selectedInstallment, paymentErrors.cuotas]);
 
     // Cargar métodos de pago al montar el componente
     useEffect(() => {
@@ -296,7 +309,7 @@ function CarritoView() {
     const validatePaymentData = useCallback(() => {
         const errors = createEmptyPaymentErrors();
 
-        if (!isCardMethod) {
+        if (!requiresCardForm) {
             return {
                 isValid: true,
                 errors
@@ -332,7 +345,7 @@ function CarritoView() {
 
         const isValid = Object.values(errors).every((message) => !message);
         return { isValid, errors };
-    }, [isCardMethod, paymentData, selectedInstallment]);
+    }, [requiresCardForm, paymentData, selectedInstallment]);
 
     const handleValidatePaymentOnBlur = useCallback(() => {
         setPaymentErrors(validatePaymentData().errors);
@@ -341,7 +354,7 @@ function CarritoView() {
     const handleMetodoPagoChange = useCallback((value) => {
         setSelectedMetodoPago(value);
         const metodoSeleccionado = metodosPago.find((metodo) => String(metodo.idMetodoPago) === String(value));
-        if (metodoSeleccionado && isCardPaymentMethod(metodoSeleccionado)) {
+        if (metodoSeleccionado && requiresCardForm) {
             setShowCardModal(true);
             setCardSaved(false);
             setSuccess('');
@@ -362,7 +375,7 @@ function CarritoView() {
             setInstallmentOptions([]);
             setSelectedInstallment('');
         }
-    }, [metodosPago, installmentOptions.length]);
+    }, [metodosPago, installmentOptions.length, requiresCardForm]);
 
     const handleCardTypeChange = useCallback((tipo) => {
         setPaymentData((prev) => ({
@@ -412,7 +425,7 @@ function CarritoView() {
             return;
         }
 
-        if (isCardMethod) {
+        if (requiresCardForm) {
             if (!cardSaved) {
                 setError('Guarda primero los datos de tu tarjeta.');
                 setShowCardModal(true);
@@ -429,7 +442,7 @@ function CarritoView() {
 
         setError('');
         setActiveStep(4);
-    }, [isCardMethod, selectedMetodoPago, setActiveStep, setError, validatePaymentData]);
+    }, [requiresCardForm, selectedMetodoPago, setActiveStep, setError, validatePaymentData]);
 
     const maskedCardNumber = useMemo(() => {
         const digits = paymentData.numeroTarjeta.replace(/\D/g, '');
@@ -446,7 +459,9 @@ function CarritoView() {
                 const filteredMetodos = Array.isArray(data) ? data.filter(isAllowedPaymentMethod) : [];
                 setMetodosPago(filteredMetodos);
                 if (filteredMetodos.length > 0) {
-                    setSelectedMetodoPago(filteredMetodos[0].idMetodoPago);
+                    const metodoMercadoPago = filteredMetodos.find(isMercadoPagoPaymentMethod);
+                    const metodoSeleccionado = metodoMercadoPago || filteredMetodos[0];
+                    setSelectedMetodoPago(metodoSeleccionado?.idMetodoPago ?? '');
                 } else {
                     setSelectedMetodoPago('');
                 }
@@ -627,12 +642,13 @@ function CarritoView() {
             return;
         }
 
-        if (isCardMethod) {
+        if (requiresCardForm) {
             if (!cardSaved) {
                 setError('Guarda primero los datos de tu tarjeta.');
                 setShowCardModal(true);
                 return;
             }
+
             const { isValid, errors } = validatePaymentData();
             setPaymentErrors(errors);
 
@@ -657,7 +673,7 @@ function CarritoView() {
             console.log('Detalles a enviar:', detalles);
 
             const cardDigits = paymentData.numeroTarjeta.replace(/\s/g, '');
-            const paymentPayload = isCardMethod ? {
+            const paymentPayload = requiresCardForm ? {
                 tipoTarjeta: 'CARD',
                 numeroTarjeta: cardDigits,
                 ultimosDigitos: cardDigits.slice(-4),
@@ -670,8 +686,8 @@ function CarritoView() {
 
             const pedidoRequest = {
                 idUsuario: user.idUsuario,
-                idMetodoPago: parseInt(selectedMetodoPago),
-                detalles: detalles,
+                idMetodoPago: parseInt(selectedMetodoPago, 10),
+                detalles,
                 ...(paymentPayload ? { datosPago: paymentPayload } : {})
             };
 
@@ -681,6 +697,50 @@ function CarritoView() {
                 'Authorization': `Bearer ${user.token || 'dummy-token'}`,
                 'X-User-Role': user.rol || 'USER'
             });
+
+            if (isMercadoPagoMethodSelected) {
+                const response = await fetch(MP_CHECKOUT_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.token || 'dummy-token'}`,
+                        'X-User-Role': user.rol || 'USER'
+                    },
+                    body: JSON.stringify(pedidoRequest)
+                });
+
+                console.log('MercadoPago response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('MercadoPago preference:', data);
+
+                    if (data && (data.initPoint || data.sandboxInitPoint)) {
+                        localStorage.setItem('mpCheckoutContext', JSON.stringify({
+                            pedidoId: data.pedidoId,
+                            preferenceId: data.preferenceId,
+                            createdAt: Date.now()
+                        }));
+
+                        const redirectUrl = data.initPoint || data.sandboxInitPoint;
+                        window.location.href = redirectUrl;
+                        return;
+                    }
+
+                    setError('No se pudo obtener el enlace de pago de Mercado Pago');
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error MercadoPago:', errorText);
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        setError(errorData.error || 'Error al iniciar el pago con Mercado Pago');
+                    } catch (e) {
+                        setError(`Error del servidor: ${response.status} - ${errorText}`);
+                    }
+                }
+
+                return;
+            }
 
             const response = await fetch('http://localhost:8080/api/pedidos/crear-desde-carrito', {
                 method: 'POST',
@@ -1134,29 +1194,19 @@ function CarritoView() {
                                                 </div>
                                             )}
 
-                                            <div className="payment-methods">
-                                                {metodosPago.map((metodo) => (
-                                                    <label 
-                                                        key={metodo.idMetodoPago} 
-                                                        className={`payment-option ${selectedMetodoPago == metodo.idMetodoPago ? 'selected' : ''}`}
-                                                    >
-                                                        <input
-                                                            type="radio"
-                                                            name="metodoPago"
-                                                            value={metodo.idMetodoPago}
-                                                            checked={selectedMetodoPago == metodo.idMetodoPago}
-                                                            onChange={(e) => handleMetodoPagoChange(e.target.value)}
-                                                            className="payment-radio"
-                                                        />
-                                                        <div className="payment-info">
-                                                            <h4>{metodo.nombre}</h4>
-                                                            <p className="payment-description">{metodo.descripcion}</p>
-                                                        </div>
-                                                    </label>
-                                                ))}
+                                            <div className="payment-methods-single">
+                                                <div className="payment-option selected" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <h4 style={{ margin: 0 }}>Mercado Pago Checkout Pro</h4>
+                                                    <p className="payment-description">
+                                                        Serás redirigido a Mercado Pago para completar tu pago con total seguridad.
+                                                    </p>
+                                                    <p className="payment-description" style={{ fontStyle: 'italic', fontSize: '13px', color: '#4b5563' }}>
+                                                        Al confirmar, generaremos la preferencia y te enviaremos automáticamente.
+                                                    </p>
+                                                </div>
                                             </div>
 
-                                            {isCardMethod && (
+                                            {requiresCardForm && (
                                                 <div className="card-summary-section">
                                                     <div className="card-summary-header">
                                                         <div>
@@ -1214,7 +1264,7 @@ function CarritoView() {
                                             <button 
                                                 className="btn-next"
                                                 onClick={handlePaymentStepContinue}
-                                                disabled={!selectedMetodoPago || (isCardMethod && !cardSaved)}
+                                                disabled={!selectedMetodoPago || (requiresCardForm && !cardSaved)}
                                             >
                                                 Continuar
                                             </button>
@@ -1245,7 +1295,7 @@ function CarritoView() {
                                             <div className="summary-section">
                                                 <h4>💳 Pago</h4>
                                                 <p>{metodosPago.find(m => m.idMetodoPago == selectedMetodoPago)?.nombre || 'No seleccionado'}</p>
-                                                {isCardMethod && maskedCardNumber && (
+                                                {requiresCardForm && maskedCardNumber && (
                                                     <p style={{ fontSize: '13px', color: '#4b5563' }}>Tarjeta • {maskedCardNumber}</p>
                                                 )}
                                             </div>

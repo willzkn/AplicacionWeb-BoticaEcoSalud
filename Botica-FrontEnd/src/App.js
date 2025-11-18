@@ -13,6 +13,7 @@
  import AccessDenied from './views/pages/AccessDenied';
  import CheckoutPage from './views/pages/CheckoutPage';
  import OrderConfirmation from './views/pages/OrderConfirmation';
+import PagoResultado from './views/pages/PagoResultado';
  import { CartProvider } from './controllers/CartContext'; 
  import { AuthProvider } from './controllers/AuthContext';
  import CarritoView from './views/pages/CarritoView'; 
@@ -44,6 +45,7 @@ function App() {
             <Route path="/carrito" element={<CarritoView />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/pedido-confirmado" element={<OrderConfirmation />} />
+            <Route path="/pago-resultado" element={<PagoResultado />} />
             <Route path="/access-denied" element={<AccessDenied />} />
             
             {/* Rutas de administrador - Protegidas */}
