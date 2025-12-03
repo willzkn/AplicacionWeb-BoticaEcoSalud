@@ -210,7 +210,7 @@ public class PedidoController {
             csv.append("ID;NOMBRES;APELLIDOS;EMAIL;TOTAL (S/);ESTADO;METODO_PAGO;FECHA_PEDIDO\n");
 
             // Formateador numérico (estilo español: miles con punto, decimales con coma)
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("es", "ES"));
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.forLanguageTag("es-ES"));
             symbols.setDecimalSeparator(',');
             symbols.setGroupingSeparator('.');
             DecimalFormat df = new DecimalFormat("#,##0.00", symbols);
