@@ -1,0 +1,76 @@
+services:
+
+  # === FRONTEND ===
+  frontend:
+    build:
+      context: ./Botica-FrontEnd
+    container_name: botica-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  # === BACKEND ===
+  backend:
+    build:
+      context: ./botica-backend
+    container_name: botica-backend
+    ports:
+      - "8081:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Conectar a MySQL de XAMPP en el host (localhost del PC)
+      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/botica?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,prometheus,info,metrics
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+
+      MERCADO_PAGO_ACCESS_TOKEN: "APP_USR-255841679344733-111717-59bae7df6e31db941039835000384117-2998483101"
+      MERCADO_PAGO_PUBLIC_KEY: "APP_USR-1346b163-99bc-4f4c-8399-27cddd3da8ff"
+      MERCADO_PAGO_BACK_SUCCESS: "http://localhost:3000/pago-resultado?status=success"
+      MERCADO_PAGO_BACK_FAILURE: "http://localhost:3000/pago-resultado?status=failure"
+      MERCADO_PAGO_BACK_PENDING: "http://localhost:3000/pago-resultado?status=pending"
+      MERCADO_PAGO_NOTIFICATION_URL: "http://<TU_IP_PUBLICA_O_TUNEL>/api/pedidos/checkout/mercadopago/notificacion"
+
+      SPRING_MAIL_USERNAME: "williammorenosaavedra3@gmail.com"
+      SPRING_MAIL_PASSWORD: "bzqhdawvyfotnpuz"
+
+  # === MYSQL EXPORTER (para monitorear MySQL de XAMPP) ===
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mysql-exporter
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "--mysqld.username=root"
+      - "--mysqld.address=host.docker.internal:3306"
+    ports:
+      - "9104:9104"
+
+  # === PROMETHEUS ===
+  monitoring-prometheus:
+    image: prom/prometheus:latest
+    container_name: monitoring-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
+      - mysql-exporter
+
+  # === GRAFANA ===
+  monitoring-grafana:
+    image: grafana/grafana:latest
+    container_name: monitoring-grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - monitoring-prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  grafana_data:
