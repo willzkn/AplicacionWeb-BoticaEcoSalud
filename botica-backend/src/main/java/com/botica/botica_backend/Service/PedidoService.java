@@ -3,10 +3,10 @@ package com.botica.botica_backend.Service;
 import com.botica.botica_backend.Model.*;
 import com.botica.botica_backend.Repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
@@ -17,6 +17,7 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
@@ -26,7 +27,6 @@ public class PedidoService {
     private final MetodoPagoRepository metodoPagoRepository;
     private final CarritoRepository carritoRepository;
     private final EmailService emailService;
-    private final MercadoPagoService mercadoPagoService;
 
     /**
      * Crear un nuevo pedido con sus detalles
@@ -91,33 +91,6 @@ public class PedidoService {
         return pedido;
     }
 
-    public record CheckoutMercadoPagoResponse(
-            Long pedidoId,
-            String preferenceId,
-            String initPoint,
-            String sandboxInitPoint,
-            BigDecimal total,
-            String estado
-    ) {
-    }
-
-    public CheckoutMercadoPagoResponse iniciarCheckoutMercadoPago(PedidoRequest pedidoRequest) {
-        Pedido pedido = crearPedido(pedidoRequest);
-        pedido.setEstado("PENDIENTE_MP");
-        pedido = pedidoRepository.save(pedido);
-
-        MercadoPagoService.PreferenceData preferenceData = mercadoPagoService.createPreference(pedido);
-
-        return new CheckoutMercadoPagoResponse(
-                pedido.getIdPedido(),
-                preferenceData.preferenceId(),
-                preferenceData.initPoint(),
-                preferenceData.sandboxInitPoint(),
-                preferenceData.total(),
-                pedido.getEstado()
-        );
-    }
-
     public void enviarConfirmacionPedido(Long idPedido, String boletaPdfBase64) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
@@ -159,10 +132,6 @@ public class PedidoService {
             );
         }
     }
-
-    /**
-     * Obtener todos los pedidos
-     */
     public List<Pedido> obtenerTodosLosPedidos() {
         return pedidoRepository.findAllByOrderByFechaPedidoDesc();
     }
@@ -358,5 +327,33 @@ public class PedidoService {
         
         public Double getVentasHoy() { return ventasHoy; }
         public void setVentasHoy(Double ventasHoy) { this.ventasHoy = ventasHoy; }
+    }
+
+    /**
+     * Enviar correo de confirmación de pedido
+     */
+    public void enviarConfirmacionPedido(Long pedidoId) {
+        try {
+            // Obtener el pedido
+            Pedido pedido = pedidoRepository.findById(pedidoId)
+                    .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+            // Enviar el correo usando el método existente del EmailService
+            String nombreCliente = pedido.getUsuario().getNombres() != null ? 
+                    pedido.getUsuario().getNombres() : "Cliente";
+            
+            emailService.enviarConfirmacionPedido(
+                    pedido.getUsuario().getEmail(),
+                    nombreCliente,
+                    pedido.getIdPedido(),
+                    pedido.getTotal()
+            );
+
+            log.info("Correo de confirmación enviado exitosamente para el pedido: {}", pedidoId);
+
+        } catch (Exception e) {
+            log.error("Error al enviar correo de confirmación para el pedido {}: {}", pedidoId, e.getMessage());
+            throw new RuntimeException("Error al enviar correo de confirmación: " + e.getMessage());
+        }
     }
 }

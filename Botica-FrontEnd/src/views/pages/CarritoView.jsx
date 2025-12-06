@@ -103,15 +103,11 @@ const createEmptyPaymentErrors = () => ({
     numeroTarjeta: '',
     nombreTitular: '',
     fechaExpiracion: '',
-    cvv: '',
-    cuotas: ''
+    cvv: ''
 });
 
 const CARD_KEYWORDS = ['tarjeta', 'card', 'crédito', 'credito', 'débito', 'debito'];
 const CASH_KEYWORDS = ['efectivo', 'cash'];
-const MERCADO_PAGO_KEYWORDS = ['mercado pago', 'mercadopago', 'mercado', 'tarjeta', 'card'];
-
-const MP_CHECKOUT_ENDPOINT = 'http://localhost:8080/api/pedidos/checkout/mercadopago/preferencia';
 
 const getMethodLookupValues = (metodo = {}) => [metodo.tipo, metodo.codigo, metodo.nombre]
     .filter(Boolean)
@@ -124,10 +120,8 @@ const isCardPaymentMethod = (metodo) => hasKeyword(CARD_KEYWORDS, getMethodLooku
 
 const isCashPaymentMethod = (metodo) => hasKeyword(CASH_KEYWORDS, getMethodLookupValues(metodo));
 
-const isMercadoPagoPaymentMethod = (metodo) => hasKeyword(MERCADO_PAGO_KEYWORDS, getMethodLookupValues(metodo));
-
 const isAllowedPaymentMethod = (metodo) =>
-    isCardPaymentMethod(metodo) || isCashPaymentMethod(metodo) || isMercadoPagoPaymentMethod(metodo);
+    isCardPaymentMethod(metodo) || isCashPaymentMethod(metodo);
 
 const DEFAULT_INSTALLMENT_OPTIONS = ['1', '3', '6', '12'];
 
@@ -218,12 +212,7 @@ function CarritoView() {
         return isCardPaymentMethod(selectedMetodo);
     }, [selectedMetodo]);
 
-    const isMercadoPagoMethodSelected = useMemo(() => {
-        if (!selectedMetodo) return false;
-        return isMercadoPagoPaymentMethod(selectedMetodo) || isCardPaymentMethod(selectedMetodo);
-    }, [selectedMetodo]);
-
-    const requiresCardForm = useMemo(() => isCardMethod && !isMercadoPagoMethodSelected, [isCardMethod, isMercadoPagoMethodSelected]);
+    const requiresCardForm = useMemo(() => isCardMethod, [isCardMethod]);
 
     useEffect(() => {
         if (!requiresCardForm) {
@@ -377,6 +366,20 @@ function CarritoView() {
         }
     }, [metodosPago, installmentOptions.length, requiresCardForm]);
 
+    // Auto-show card modal when step 3 is activated - EVERY TIME
+    useEffect(() => {
+        if (activeStep === 3 && requiresCardForm && !showCardModal) {
+            setShowCardModal(true);
+            setCardSaved(false);
+            setSuccess('');
+            setError('');
+            if (installmentOptions.length === 0) {
+                setInstallmentOptions(DEFAULT_INSTALLMENT_OPTIONS);
+                setSelectedInstallment(DEFAULT_INSTALLMENT_OPTIONS[0]);
+            }
+        }
+    }, [activeStep, requiresCardForm, showCardModal, installmentOptions.length]);
+
     const handleCardTypeChange = useCallback((tipo) => {
         setPaymentData((prev) => ({
             ...prev,
@@ -417,7 +420,9 @@ function CarritoView() {
         setCardSaved(true);
         setShowCardModal(false);
         setSuccess('Datos de la tarjeta guardados correctamente.');
-    }, [validatePaymentData]);
+        // Avanzar automáticamente al paso 4
+        setActiveStep(4);
+    }, [validatePaymentData, setActiveStep]);
 
     const handlePaymentStepContinue = useCallback(() => {
         if (!selectedMetodoPago) {
@@ -459,8 +464,8 @@ function CarritoView() {
                 const filteredMetodos = Array.isArray(data) ? data.filter(isAllowedPaymentMethod) : [];
                 setMetodosPago(filteredMetodos);
                 if (filteredMetodos.length > 0) {
-                    const metodoMercadoPago = filteredMetodos.find(isMercadoPagoPaymentMethod);
-                    const metodoSeleccionado = metodoMercadoPago || filteredMetodos[0];
+                    const metodoTarjeta = filteredMetodos.find(isCardPaymentMethod);
+                    const metodoSeleccionado = metodoTarjeta || filteredMetodos[0];
                     setSelectedMetodoPago(metodoSeleccionado?.idMetodoPago ?? '');
                 } else {
                     setSelectedMetodoPago('');
@@ -600,6 +605,7 @@ function CarritoView() {
         try {
             if (!pedido || !pedido.idPedido) return;
 
+            // Primero generar el PDF
             const detallesResponse = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/detalles`, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -615,6 +621,22 @@ function CarritoView() {
             }
 
             await generarPDFBoleta(pedido, detalles);
+
+            // Enviar correo de confirmación con la boleta
+            const emailResponse = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/enviar-confirmacion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token || 'dummy-token'}`,
+                    'X-User-Role': user?.rol || 'USER'
+                }
+            });
+
+            if (emailResponse.ok) {
+                console.log('Correo de confirmación enviado exitosamente');
+            } else {
+                console.error('Error al enviar correo de confirmación:', emailResponse.status);
+            }
         } catch (err) {
             console.error('Error al enviar confirmación con boleta:', err);
         }
@@ -697,50 +719,6 @@ function CarritoView() {
                 'Authorization': `Bearer ${user.token || 'dummy-token'}`,
                 'X-User-Role': user.rol || 'USER'
             });
-
-            if (isMercadoPagoMethodSelected) {
-                const response = await fetch(MP_CHECKOUT_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${user.token || 'dummy-token'}`,
-                        'X-User-Role': user.rol || 'USER'
-                    },
-                    body: JSON.stringify(pedidoRequest)
-                });
-
-                console.log('MercadoPago response status:', response.status);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('MercadoPago preference:', data);
-
-                    if (data && (data.initPoint || data.sandboxInitPoint)) {
-                        localStorage.setItem('mpCheckoutContext', JSON.stringify({
-                            pedidoId: data.pedidoId,
-                            preferenceId: data.preferenceId,
-                            createdAt: Date.now()
-                        }));
-
-                        const redirectUrl = data.initPoint || data.sandboxInitPoint;
-                        window.location.href = redirectUrl;
-                        return;
-                    }
-
-                    setError('No se pudo obtener el enlace de pago de Mercado Pago');
-                } else {
-                    const errorText = await response.text();
-                    console.error('Error MercadoPago:', errorText);
-                    try {
-                        const errorData = JSON.parse(errorText);
-                        setError(errorData.error || 'Error al iniciar el pago con Mercado Pago');
-                    } catch (e) {
-                        setError(`Error del servidor: ${response.status} - ${errorText}`);
-                    }
-                }
-
-                return;
-            }
 
             const response = await fetch('http://localhost:8080/api/pedidos/crear-desde-carrito', {
                 method: 'POST',
@@ -1196,12 +1174,12 @@ function CarritoView() {
 
                                             <div className="payment-methods-single">
                                                 <div className="payment-option selected" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                    <h4 style={{ margin: 0 }}>Mercado Pago Checkout Pro</h4>
+                                                    <h4 style={{ margin: 0 }}>Tarjeta de crédito o débito</h4>
                                                     <p className="payment-description">
-                                                        Serás redirigido a Mercado Pago para completar tu pago con total seguridad.
+                                                        Paga de forma segura directamente en nuestra web con validación en tiempo real.
                                                     </p>
                                                     <p className="payment-description" style={{ fontStyle: 'italic', fontSize: '13px', color: '#4b5563' }}>
-                                                        Al confirmar, generaremos la preferencia y te enviaremos automáticamente.
+                                                        Tus datos son procesados de forma segura con encriptación SSL.
                                                     </p>
                                                 </div>
                                             </div>
@@ -1212,46 +1190,9 @@ function CarritoView() {
                                                         <div>
                                                             <h4 style={{ margin: 0, color: '#1f2937' }}>Tarjeta de crédito o débito</h4>
                                                             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                                                                Ingrese los datos de la tarjeta para procesar el pago.
+                                                                Paga de forma segura directamente en nuestra web.
                                                             </p>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-secondary"
-                                                            onClick={() => setShowCardModal(true)}
-                                                        >
-                                                            {cardSaved ? 'Editar tarjeta' : 'Agregar tarjeta'}
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="card-preview">
-                                                        <div className="card-preview-inner">
-                                                            <div className="card-preview-header">
-                                                                <span className="card-brand">Botica EcoSalud</span>
-                                                                <span className="card-chip" aria-hidden="true"></span>
-                                                            </div>
-                                                            <div className="card-preview-number">
-                                                                {cardSaved ? maskedCardNumber || '**** **** **** ****' : '**** **** **** ****'}
-                                                            </div>
-                                                            <div className="card-preview-footer">
-                                                                <div>
-                                                                    <span className="card-label">Titular</span>
-                                                                    <span className="card-value">{cardSaved ? paymentData.nombreTitular || 'NOMBRE APELLIDO' : 'NOMBRE APELLIDO'}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span className="card-label">Expira</span>
-                                                                    <span className="card-value">{cardSaved ? paymentData.fechaExpiracion || 'MM/AA' : 'MM/AA'}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="card-summary-status">
-                                                        {cardSaved ? (
-                                                            <span className="status-chip status-chip-success">Datos de tarjeta guardados</span>
-                                                        ) : (
-                                                            <span className="status-chip status-chip-warning">Falta registrar los datos de la tarjeta</span>
-                                                        )}
                                                     </div>
                                                     {cardSaved && paymentData.tipoTarjeta === 'credito' && (
                                                         <div style={{ marginTop: '0.5rem', fontSize: '13px', color: '#1f2937' }}>
@@ -1261,10 +1202,28 @@ function CarritoView() {
                                                 </div>
                                             )}
                                             
+                                            {cardSaved && (
+                                                <div style={{ 
+                                                    marginTop: '1rem', 
+                                                    padding: '0.75rem', 
+                                                    backgroundColor: '#f0fdf4', 
+                                                    border: '1px solid #22c55e', 
+                                                    borderRadius: '8px',
+                                                    color: '#16a34a',
+                                                    fontSize: '14px'
+                                                }}>
+                                                    ✓ Tarjeta validada correctamente: {maskedCardNumber}
+                                                </div>
+                                            )}
+                                            
                                             <button 
                                                 className="btn-next"
                                                 onClick={handlePaymentStepContinue}
                                                 disabled={!selectedMetodoPago || (requiresCardForm && !cardSaved)}
+                                                style={{ 
+                                                    marginTop: cardSaved ? '0.5rem' : '0',
+                                                    opacity: (!selectedMetodoPago || (requiresCardForm && !cardSaved)) ? 0.5 : 1
+                                                }}
                                             >
                                                 Continuar
                                             </button>
@@ -1273,7 +1232,7 @@ function CarritoView() {
                                 </div>
 
                                 {/* Paso 4: Resumen */}
-                                <div className={`accordion-item ${activeStep === 4 ? 'active' : ''}`}>
+                                <div className={`accordion-item ${activeStep === 4 ? 'active' : ''}`}> 
                                     <button 
                                         className="accordion-header"
                                         onClick={() => setActiveStep(activeStep === 4 ? 0 : 4)}

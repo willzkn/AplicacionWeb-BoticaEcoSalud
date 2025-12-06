@@ -192,6 +192,32 @@ public class MercadoPagoService {
         );
     }
 
+    public record PaymentResult(
+        boolean approved,
+        String paymentId,
+        String status,
+        String statusDetail
+    ) {}
+
+    public PaymentResult processPayment(String token, Integer installments, double amount) {
+        try {
+            // Por ahora, simular un pago exitoso para pruebas
+            // En producción, aquí iría la llamada real a la API de MercadoPago
+            log.info("[MercadoPago] Procesando pago simulado - amount: {}, installments: {}", amount, installments);
+            
+            return new PaymentResult(
+                    true, // approved
+                    "SIM_" + System.currentTimeMillis(), // paymentId simulado
+                    "approved",
+                    "Pago aprobado en modo de prueba"
+            );
+
+        } catch (Exception e) {
+            log.error("[MercadoPago] Error procesando pago", e);
+            throw new RuntimeException("Error procesando pago con MercadoPago", e);
+        }
+    }
+
     public void handleNotification(Map<String, String> queryParams, Map<String, Object> body) {
         String topic = queryParams.getOrDefault("type", queryParams.getOrDefault("topic", ""));
         String dataId = queryParams.get("data.id");

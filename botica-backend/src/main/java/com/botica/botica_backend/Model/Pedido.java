@@ -29,6 +29,9 @@ public class Pedido {
     @Column(name = "fechaPedido")
     private LocalDate fechaPedido;
 
+    @Column(name = "paymentId")
+    private String paymentId;
+
     @ManyToOne
     @JoinColumn(name = "idUsuario")
     @JsonIgnoreProperties({"password", "activo", "fechaRegistro", "debeCambiarPassword"})
@@ -55,6 +58,9 @@ public class Pedido {
     
     public LocalDate getFechaPedido() { return fechaPedido; }
     public void setFechaPedido(LocalDate fechaPedido) { this.fechaPedido = fechaPedido; }
+    
+    public String getPaymentId() { return paymentId; }
+    public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
     
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
