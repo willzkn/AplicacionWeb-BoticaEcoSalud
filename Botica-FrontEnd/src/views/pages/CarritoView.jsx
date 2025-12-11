@@ -579,12 +579,31 @@ function CarritoView() {
                 }
             });
 
+            
             yPos += 4;
             doc.line(10, yPos, pageWidth - 10, yPos);
             yPos += 8;
+            // Cálculo de IGV y subtotal
+            const igv = (pedido.total || total) * 0.18; // 18% de IGV
+            const subtotal = (pedido.total || total) - igv;
+            // Mostrar subtotal
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Subtotal: S/. ${subtotal.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            yPos += 6;
+            // Mostrar IGV
+            doc.text(`IGV (18%): S/. ${igv.toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            yPos += 6;
+            // Línea divisoria antes del total
+            doc.line(pageWidth - 100, yPos, pageWidth - 10, yPos);
+            yPos += 8;
+            // Mostrar total
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.text(`TOTAL: S/. ${(pedido.total || total).toFixed(2)}`, pageWidth - 10, yPos, { align: 'right' });
+            yPos += 6;
+
+
 
             yPos += 15;
             doc.setFontSize(9);
